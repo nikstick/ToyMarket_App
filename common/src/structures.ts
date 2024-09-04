@@ -2,6 +2,7 @@ import { mapObj } from "./utils";
 
 export const ENTITIES_RAW = {
   users: 1,
+  products: 26,
   clients: 29,
   news: 30,
 }
@@ -19,6 +20,9 @@ export const FIELDS_RAW = {
     url: 297,
     publishDate: 301,  // FIXME: MISSING!
   },
+  products: {
+    photo: 220
+  }
 }
 export const VALUES = {
   clients: {

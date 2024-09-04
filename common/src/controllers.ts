@@ -1,3 +1,5 @@
+import type { Writable } from "node:stream";
+
 import axios from "axios";
 import type { Config } from "convict";
 
@@ -45,10 +47,50 @@ export class Spruton<ConfigSchemaT extends SprutonConfigSchema> {
     );
   }
 
-  public imageURL(
-    item: SprutonItem,
-    field: number
-  ): string {
+  public imageURL(item: SprutonItem, field: number): string {
     return `${this.config.get("spruton.url")}/${item[field]}`;
+  }
+
+  public fileExportDownload(
+    entity: number,
+    id: number,
+    field: number,
+    filename: string,
+    buf: Writable
+  ): void {
+    axios.get(
+      `${this.config.get("spruton.url")}/index.php`,
+      {
+        params: {
+          module: "export/file",
+          id: field,
+          path: `${entity}-${id}`,
+          file: filename
+        },
+        responseType: "stream"
+      }
+    ).then((response) => { response.data.pipe(buf); });
+  }
+
+  public downloadAttachment(
+    entity: typeof ENTITIES_RAW[keyof typeof ENTITIES_RAW],
+    id: number,
+    filename: string,
+    buf: Writable,
+    preview: boolean = true
+  ): void {
+    axios.get(
+      `${this.config.get("spruton.url")}/index.php`,
+      {
+        params: {
+          module: "items/info",
+          path: `${entity}-${id}`,
+          action: "download_attachment",
+          preview: (preview ? 1 : 0),
+          file: Buffer.from(filename).toString("base64")
+        },
+        responseType: "stream"
+      }
+    ).then((response) => { response.data.pipe(buf); });
   }
 }
