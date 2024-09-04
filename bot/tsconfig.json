@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "target": "ES6",
+    "outDir": "dist",
+    "moduleResolution":"node",
+    "paths": {"./*": ["./src/*"], "common/*": ["../common/src/*"]},
+    "allowSyntheticDefaultImports": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true
+  },
+  "include": [
+    "src/**/*"
+, "../common/src/db.ts"  ]
+}

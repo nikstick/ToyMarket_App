@@ -1,0 +1,27 @@
+{
+  "name": "common",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "typescript": {
+    "definition": "index.d.ts"
+  },
+  "scripts": {
+    "build": "npx tsc --build"
+  },
+  "author": "lightmanLP",
+  "license": "",
+  "dependencies": {
+    "axios": "^1.7.7",
+    "mysql2": "^3.11.0"
+  },
+  "devDependencies": {
+    "@types/convict": "^6.1.6",
+    "typescript": "^5.5.4"
+  },
+  "files": [
+    "dist"
+  ]
+}

@@ -128,3 +128,16 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+yarn.lock
+
+# Code
+/.vscode
+
+# Symlinks
+node_modules
+
+# Custom
+/test.py
+/*/config.json
+/*/config.yml
+/.local

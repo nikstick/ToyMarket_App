@@ -1,0 +1,6 @@
+Новый незарегистрированный пользователь!
+
+@<%= it.user.username %>
+Имя: <%= it.user.first_name %>
+ID: <%= it.user.id %>
+Телефон: <%= it.number %>

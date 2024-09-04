@@ -1,0 +1,30 @@
+{
+  "name": "bot",
+  "version": "1.0.0",
+  "description": "",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "npx tsc --build"
+  },
+  "author": "lightmanLP",
+  "license": "",
+  "dependencies": {
+    "body-parser": "^1.20.2",
+    "common": "file:../common",
+    "convict": "^6.2.4",
+    "convict-format-with-validator": "^6.2.0",
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "js-yaml": "^4.1.0",
+    "node-ts-cache": "^4.4.0",
+    "node-ts-cache-storage-memory": "^4.4.0"
+  },
+  "devDependencies": {
+    "@types/convict": "^6.1.6",
+    "@types/convict-format-with-validator": "^6.0.5",
+    "@types/js-yaml": "^4.0.9",
+    "@types/node-fetch": "^2.6.9",
+    "typescript": "^5.2.2"
+  }
+}

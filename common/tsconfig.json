@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "target": "ES6",
+    "outDir": "dist",
+    "moduleResolution": "node",
+    "paths": {"./*": ["./src/*"]},
+    "allowSyntheticDefaultImports": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "esModuleInterop": true,
+	  "declaration": true
+  },
+  "include": [
+    "src/**/*"
+  ]
+}
