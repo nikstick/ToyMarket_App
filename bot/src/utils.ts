@@ -1,36 +1,10 @@
-import { open } from "fs/promises";
+import { open } from "node:fs/promises";
 
-import { Cache, CacheContainer, ICachingOptions } from "node-ts-cache";
+import { Cache } from "node-ts-cache";
 import { MemoryStorage } from "node-ts-cache-storage-memory";
 import { Eta } from "eta";
 
-import { CacheKeySpec } from "./structures";
-
-export class IgnorableCacheContainer extends CacheContainer {
-  public static EMPTY = "_*_";
-
-  public async setItem(
-    key: string,
-    content: any,
-    options: Partial<ICachingOptions>
-  ): Promise<void> {
-    if (key == IgnorableCacheContainer.EMPTY || content == null) { return; }
-    await super.setItem(key, content, options);
-  }
-
-  public static jsonCalcKey(data: CacheKeySpec): string {
-    return `${data.className}:${<string>data.methodName}:${JSON.stringify(data.args)}`;
-  }
-
-  public static excludedCalcKey(
-    excluder: (data: CacheKeySpec) => boolean
-  ): (data: CacheKeySpec) => string {
-    return (data) => {
-      if (excluder(data)) { return this.EMPTY; }
-      return this.jsonCalcKey(data);
-    }
-  }
-}
+import { IgnorableCacheContainer } from "common/utils";
 
 export const cacheStorage = new IgnorableCacheContainer(new MemoryStorage());
 

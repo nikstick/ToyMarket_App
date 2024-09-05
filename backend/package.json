@@ -10,8 +10,10 @@
   "author": "lightmanLP",
   "license": "",
   "dependencies": {
-    "body-parser": "^1.20.2",
     "common": "file:../common",
+    "tg-bot": "file:../bot",
+    "@exode-team/tinkoff.checkout": "1.0.77",
+    "body-parser": "^1.20.2",
     "convict": "^6.2.4",
     "convict-format-with-validator": "^6.2.0",
     "cors": "^2.8.5",

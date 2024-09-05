@@ -8,7 +8,7 @@ async function performBroadcast() {
   for await (const session of DBSession.ctx()) {
     for await (const news of session.popNews()) {
       if (!news.length) { continue; }
-      let users = await session.getBroadcastableClients();
+      let users = await session.fetchBroadcastableClients();
       if (!users.length) { continue; }
       let newsApiData = await spruton.fetchNews(news.map(x => x.id));
 

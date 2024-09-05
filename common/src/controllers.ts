@@ -12,7 +12,7 @@ interface SprutonConfigSchema {
     apiKey: string,
     url: string
   }
-};
+}
 
 export class Spruton<ConfigSchemaT extends SprutonConfigSchema> {
   protected readonly config: Config<SprutonConfigSchema>;

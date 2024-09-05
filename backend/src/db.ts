@@ -11,7 +11,21 @@ export enum NotificationType {
   ACCESSIBLE = "accessible",
 }
 
-export class DBSession extends DBSessionOrigin {}
+export class DBSession extends DBSessionOrigin {
+  public async fetchAuthClient(email: string, password: string): Promise<RowDataPacket | null> {
+    // FIXME: THE HELL? PASSWORD? RLY?
+    const [rows] = await this.conn.execute(`
+      SELECT * FROM ${ENTITIES.clients}
+      WHERE ${FIELDS.clients.email} = ? AND ${FIELDS.clients.password} = ?
+    `, [email, password]) as RowDataPacket[][];
+
+    if (rows && rows[0]) {
+      return rows[0];
+    } else {
+      return null;
+    }
+  }
+}
 
 PoolManager.get(
   config,
@@ -23,16 +37,16 @@ PoolManager.get(
       await conn.query(query);
       query = `
         CREATE TRIGGER bot_rename_order
-          BEFORE INSERT ON app_entity_27
+          BEFORE INSERT ON ${ENTITIES.orders}
           FOR EACH ROW
           BEGIN
-            IF NEW.field_234 = "${ORDER_PLACEHOLDER}" THEN
+            IF NEW.${FIELDS.orders.title} = "${ORDER_PLACEHOLDER}" THEN
               SET @auto_id := (
                 SELECT AUTO_INCREMENT
                 FROM INFORMATION_SCHEMA.TABLES
-                WHERE TABLE_NAME = "app_entity_27" AND TABLE_SCHEMA = DATABASE()
+                WHERE TABLE_NAME = "${ENTITIES.orders}" AND TABLE_SCHEMA = DATABASE()
               );
-              SET NEW.field_234 = CONCAT("Заказ №", @auto_id);
+              SET NEW.${FIELDS.orders.title} = CONCAT("Заказ №", @auto_id);
             END IF;
           END
       `;

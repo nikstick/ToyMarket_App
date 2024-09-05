@@ -6,7 +6,7 @@ import { IgnorableCacheContainer, cacheStorage } from "./utils";
 import { config } from "./config";
 import { DBSession, NotificationType } from "./db";
 
-export let spruton = new Spruton(config);
+export var spruton = new Spruton(config);
 
 class Storage {
   // works like ctx manager with for..of
