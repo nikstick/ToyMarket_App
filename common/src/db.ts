@@ -279,8 +279,8 @@ export class DBSession {
       [[
         fetchedProducts.map(
           ([product, data], i) => [
-            0,
-            0,
+            ENTITIES_RAW.orders,
+            orderID,
             0,
             Date.now() / 1000,
             Date.now() / 1000,
@@ -348,5 +348,13 @@ export class DBSession {
         clientID
       ]
     );
+  }
+
+  public async fetchOrderItems(orderID: number): Promise<RowDataPacket[]> {
+    const [items] = await this.conn.execute(
+      `SELECT * FROM ${ENTITIES.orderItems} WHERE parent_item_id = ?`,
+      [orderID]
+    ) as RowDataPacket[][];
+    return items;
   }
 }

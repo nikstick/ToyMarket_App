@@ -15,7 +15,6 @@ import { DBSession } from "./db";
 import { assert } from "common/utils";
 import { uselessFront } from "./utils";
 import { ORDER_PLACEHOLDER, valuesTranslation } from "./structures";
-import { email } from "convict-format-with-validator";
 
 const app = express();
 app.use(cors());
