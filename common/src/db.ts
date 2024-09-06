@@ -357,4 +357,12 @@ export class DBSession {
     ) as RowDataPacket[][];
     return items;
   }
+
+  public async fetchOrder(orderID: number): Promise<RowDataPacket> {
+    const [[order]] = await this.conn.execute(
+      `SELECT * FROM ${ENTITIES.orders} WHERE id = ?`,
+      [orderID]
+    ) as RowDataPacket[][];
+    return order;
+  }
 }

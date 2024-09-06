@@ -62,8 +62,10 @@ export const FIELDS_RAW = {
     address: 285,
     companyName: 286,
     inn: 287,
+    taxedAmount: 327,
     status: 337,
     personalDiscount: 341,
+    amount: 368,
     comment: 396,
   },
   orderItems: {
@@ -103,8 +105,15 @@ export const VALUES = {
       delivered: 43,
       cancelled: 44,
       archived: 46
-    }
-  }
+    },
+  },
+  global: {
+    tax: {
+      none: 50,
+      perc10: 51,
+      perc20: 52
+    },
+  },
 } as const;
 
 type EntitiesT = {[key in keyof typeof ENTITIES_RAW]: `app_entity_${typeof ENTITIES_RAW[key]}`};

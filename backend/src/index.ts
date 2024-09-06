@@ -43,6 +43,9 @@ declare global {
   }
 }
 
+interface IErrorResponse {error: true, reason?: string};
+type ErrorResponse = IErrorResponse | undefined;
+
 app.use(
   async (req: Request, res: Response, next: NextFunction) => {
     req.ctx = {
@@ -68,7 +71,7 @@ app.use(
         };
         next();
       } else {
-        return res.json({error: true});
+        return res.json({error: true} as IErrorResponse);
       }
     }
   }
@@ -99,7 +102,7 @@ app.get(
 app.get(
   "/api/products",
   async (req: Request, res: Response) => {
-    res.json({data: await storage.getProductsByCategoryView()});
+    return res.json({data: await storage.getProductsByCategoryView()});
   }
 );
 
@@ -167,7 +170,6 @@ app.get(
   }
 );
 
-
 app.post(
   "/api/order",
   async (req: Request, res: Response) => {
@@ -228,7 +230,7 @@ app.post(
             // FIXME: funny and woozy
             let { id, quantity, inBox } = product;
             quantity = Math.ceil(quantity * inBox);
-            return {id: quantity};
+            return {[id]: quantity};
           }
         )
       );
@@ -261,7 +263,7 @@ app.post(
     ipc.of.bot.emit("newOrder", data);
   }
 
-  res.status(200).json({message: "ok", orderID: orderID});
+  return res.status(200).json({status: "ok", orderID: orderID});
 });
 
 
