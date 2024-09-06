@@ -12,7 +12,7 @@ convict.addParser({extension: ["yml", "yaml"], parse: yaml.load});
 export var config = convict({
   web: {
     port: {
-      format: Number,
+      format: "int",
       default: 8000
     }
   },
@@ -54,4 +54,4 @@ export var config = convict({
   }
 });
 config.loadFile("./config.yml");
-config.validate({allowed: "strict"});
+config.validate({allowed: "warn"});

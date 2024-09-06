@@ -5,7 +5,7 @@ export const ENTITIES_RAW = {
   productCategories: 25,
   products: 26,
   orders: 27,
-  order_items: 28,
+  orderItems: 28,
   clients: 29,
   news: 30,
 } as const;
@@ -19,10 +19,11 @@ export const FIELDS_RAW = {
     email: 267,
     address: 269,
     password: 271,
-    company: 272,
+    companyName: 272,
     status: 273,
     inn: 276,
     tgID: 281,
+    personalDiscount: 338,
   },
   news: {
     text: 295,
@@ -42,7 +43,9 @@ export const FIELDS_RAW = {
     otherPhotos: 288,
     recomendedMinimalSize: 306,
     recomendedMinimalSizeBoxParts: 315,
+    price: 318,
     keywords: 319,
+    tax: 370,
     packageSize: 383,
     finalPriceServiced: 401,
   },
@@ -52,12 +55,30 @@ export const FIELDS_RAW = {
   orders: {
     title: 234,
     client: 235,
+    paymentMethod: 279,
+    deliveryMethod: 280,
+    phoneNumber: 283,
+    email: 284,
+    address: 285,
+    companyName: 286,
+    inn: 287,
+    status: 337,
+    personalDiscount: 341,
+    comment: 396,
   },
-  order_items: {
+  orderItems: {
     product: 242,
     quantity: 245,
     price: 246,
-    taxed_price: 364
+    boxesCount: 248,
+    boxSize: 249,
+    category: 250,
+    recomendedMinimalSize: 305,
+    tax: 363,
+    taxedPrice: 364,
+    amount: 366,
+    packageSize: 385,
+    article: 399,
   }
 } as const;
 export const VALUES = {
@@ -75,6 +96,13 @@ export const VALUES = {
     deliveryMethod: {
       courier: 4,
       selfPickup: 5
+    },
+    status: {
+      new: 41,
+      paid: 42,
+      delivered: 43,
+      cancelled: 44,
+      archived: 46
     }
   }
 } as const;

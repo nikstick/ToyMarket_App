@@ -8,6 +8,8 @@ import {
 } from "@grammyjs/conversations";
 import { type PhoneNumber, parsePhoneNumber, ParseError } from "libphonenumber-js";
 
+import type { NewOrder } from "common/ipc";
+
 import { config } from "./config";
 import { StaticUtils } from "./utils";
 import { storage } from "./controllers";
@@ -108,19 +110,19 @@ bot.on("message", async (ctx) => {
     if (msg.from.id != mngrID) {
       await ctx.api.forwardMessage(mngrID, ctx.from.id, msg.message_id);
     } else {
-      const reply_msg = msg.reply_to_message;
+      const replyMsg = msg.reply_to_message;
       if (
-        reply_msg
-        && reply_msg.forward_origin
-        && reply_msg.forward_origin.type == "user"
+        replyMsg
+        && replyMsg.forward_origin
+        && replyMsg.forward_origin.type == "user"
       ) {
         const me = (await ctx.api.getMe());
         if (
-          reply_msg.from.id == me.id
-          && reply_msg.forward_origin.sender_user.id != me.id
+          replyMsg.from.id == me.id
+          && replyMsg.forward_origin.sender_user.id != me.id
         ) {
           await ctx.api.copyMessage(
-            reply_msg.forward_origin.sender_user.id,
+            replyMsg.forward_origin.sender_user.id,
             ctx.from.id,
             msg.message_id,
             // TODO: id field is missing, so no replies
@@ -151,6 +153,21 @@ export async function sendAccessibleNotify(clientTgID: number): Promise<void> {
   } catch (error) {
     console.error(`Error in sending accessible notification to ${clientTgID}:`, error);
   }
+}
+
+export async function sendNewOrder(data: NewOrder) {
+  const inlineKeyboard = new InlineKeyboard().webApp(
+    "Заказать еще",
+    config.get("bot.webAppURL")
+  );
+  await bot.api.sendMessage(
+    data.client.tgID,
+    await StaticUtils.renderText("new_order", data, false),
+    {
+      parse_mode: "HTML",
+      reply_markup: inlineKeyboard,
+    }
+  );
 }
 
 bot.use(

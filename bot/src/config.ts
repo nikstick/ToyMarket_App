@@ -54,4 +54,4 @@ export var config = convict({
   }
 });
 config.loadFile("./config.yml");
-config.validate({allowed: "strict"});
+config.validate({allowed: "warn"});

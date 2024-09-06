@@ -4,14 +4,18 @@ import express, { type Request, type Response, type NextFunction } from "express
 import cors from "cors";
 import bodyParser from "body-parser";
 import type { RowDataPacket } from "mysql2/promise";
+import ipc from "node-ipc";
 
 import { ENTITIES, ENTITIES_RAW, FIELDS, FIELDS_RAW } from "common/structures";
+import type { NewOrder } from "common/ipc";
 
 import { config } from "./config";
 import { spruton, storage } from "./controllers";
 import { DBSession } from "./db";
 import { assert } from "common/utils";
 import { uselessFront } from "./utils";
+import { ORDER_PLACEHOLDER, valuesTranslation } from "./structures";
+import { email } from "convict-format-with-validator";
 
 const app = express();
 app.use(cors());
@@ -26,7 +30,7 @@ app.use(
 );
 
 interface RequestContext {
-  is_tg: boolean;
+  isTg: boolean;
   email?: string;
   password?: string;
   client?: RowDataPacket;
@@ -43,7 +47,7 @@ declare global {
 app.use(
   async (req: Request, res: Response, next: NextFunction) => {
     req.ctx = {
-      is_tg: true
+      isTg: true
     };
 
     // TODO: require "tg" in auth header
@@ -58,7 +62,7 @@ app.use(
       let client = await session.fetchAuthClient(email, password);
       if (client != null) {
         req.ctx = {
-          is_tg: false,
+          isTg: false,
           email: email,
           password: password,
           client: client
@@ -105,7 +109,7 @@ app.get(
   async (req: Request, res: Response) => {
     let client, ordersView;
     for await (const session of DBSession.ctx()) {
-      if (req.ctx.is_tg) {
+      if (req.ctx.isTg) {
         const { tgID } = req.query;
         client = await session.fetchClient(Number(tgID));
       } else {
@@ -143,7 +147,7 @@ app.get(
           name: client[FIELDS.clients.fullName],
           phone: client[FIELDS.clients.ruPhoneNumber],
           address: client[FIELDS.clients.address],
-          company: client[FIELDS.clients.company],
+          company: client[FIELDS.clients.companyName],
           inn: client[FIELDS.clients.inn],
           orders: ordersView
         },
@@ -163,6 +167,104 @@ app.get(
     }
   }
 );
+
+
+app.post(
+  "/api/order",
+  async (req: Request, res: Response) => {
+    // Order details
+    let {
+      name,
+      phone,
+      address,
+      comment,
+      companyName,
+      inn,
+      delivery,
+      payBy,
+      products,
+    } = req.body;
+    if (typeof comment == "undefined") {
+      comment = "";
+    }
+    if (typeof address == "undefined") {
+      address = "";
+    }
+    if (!name || !phone) {
+      return res.status(400).json({error: "Bad Request"});
+    }
+
+    let orderID, items, client;
+    for await (const session of DBSession.ctx()) {
+      if (req.ctx.isTg) {
+        client = session.fetchClient(req.body.userId);
+      } else {
+        client = req.ctx.client;
+        assert(client != null);
+      }
+
+      let personalDiscount: number;
+      {
+        let personalDiscountSrc = client[FIELDS.clients.personalDiscount];
+        if (!personalDiscountSrc) {
+          personalDiscount = 0;
+        } else {
+          personalDiscount = Number(personalDiscountSrc);
+        }
+      }
+      let {orderID, items} = await session.createOrder(
+        ORDER_PLACEHOLDER,
+        client.id,
+        phone,
+        client[FIELDS.clients.email],
+        address,
+        companyName,
+        inn,
+        personalDiscount,
+        comment,
+        valuesTranslation.paymentMethod[payBy.toLowerCase()],
+        valuesTranslation.deliveryMethod[delivery.toLowerCase()],
+        products.map(
+          (product) => {
+            // FIXME: funny and woozy
+            let { id, quantity, inBox } = product;
+            quantity = Math.ceil(quantity * inBox);
+            return {id: quantity};
+          }
+        )
+      );
+
+      await session.updateClientData(
+        client.id,
+        name,
+        phone,
+        address,
+        companyName,
+        inn
+      );
+    }
+
+  if (req.ctx.isTg) {
+    let data: NewOrder = {
+      orderID: orderID,
+      client: {
+        tgID: client[FIELDS.clients.tgID],
+        fullName: name,
+        phoneNumber: phone,
+        address: address,
+        comment: comment,
+        companyName: companyName,
+        inn: inn
+      },
+      src: req.body,
+      items: items
+    }
+    ipc.of.bot.emit("newOrder", data);
+  }
+
+  res.status(200).json({message: "ok", orderID: orderID});
+});
+
 
 const server = http.createServer(app);
 {

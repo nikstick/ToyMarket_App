@@ -1,5 +1,6 @@
 import type { RowDataPacket } from "mysql2/promise";
 import { Cache } from "node-ts-cache";
+import ipc from "node-ipc";
 
 import { Spruton } from "common/controllers";
 
@@ -57,3 +58,6 @@ class Storage {
 }
 
 export var storage = new Storage();
+
+ipc.config.id = "backend";
+ipc.connectTo("bot");

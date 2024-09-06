@@ -1,6 +1,8 @@
 {
   "private": true,
   "workspaces": [
-    "./*"
+    "common",
+    "bot",
+    "backend"
   ]
 }

@@ -1,5 +1,13 @@
-import { type PoolOptions, type Pool, type PoolConnection, type RowDataPacket, createPool} from "mysql2/promise";
+import {
+  type PoolOptions,
+  type Pool,
+  type PoolConnection,
+  type RowDataPacket,
+  type ResultSetHeader,
+  createPool
+} from "mysql2/promise";
 import type { Config } from "convict";
+import { Decimal } from "decimal.js";
 
 import { ENTITIES_RAW, FIELDS_RAW, VALUES, ENTITIES, FIELDS } from "./structures";
 import { aliasedAs, assert, AssertionError } from "./utils";
@@ -109,25 +117,34 @@ export class DBSession {
   public async fetchProductsView(): Promise<RowDataPacket[]> {
     const [products] = await this.conn.execute(`
       SELECT
-      product.id AS id,
-      category.id AS categoryID,
-      category.${aliasedAs(FIELDS.productCategories.name, "categoryName")},
-      product.${aliasedAs(FIELDS.products.photo)},
-      product.${aliasedAs(FIELDS.products.article)},
-      product.${aliasedAs(FIELDS.products.finalPriceServiced, "price")},
-      product.${aliasedAs(FIELDS.products.recomendedMinimalSize)},
-      product.${aliasedAs(FIELDS.products.boxSize)},
-      product.${aliasedAs(FIELDS.products.packageSize)},
-      product.${aliasedAs(FIELDS.products.inStock)},
-      product.${aliasedAs(FIELDS.products.isNew)},
-      product.${aliasedAs(FIELDS.products.description)},
-      product.${aliasedAs(FIELDS.products.review)},
-      product.${aliasedAs(FIELDS.products.keywords)},
-      product.${aliasedAs(FIELDS.products.otherPhotos)}
+        product.id AS id,
+        category.id AS categoryID,
+        category.${aliasedAs(FIELDS.productCategories.name, "categoryName")},
+        product.${aliasedAs(FIELDS.products.photo)},
+        product.${aliasedAs(FIELDS.products.article)},
+        product.${aliasedAs(FIELDS.products.finalPriceServiced, "price")},
+        product.${aliasedAs(FIELDS.products.recomendedMinimalSize)},
+        product.${aliasedAs(FIELDS.products.boxSize)},
+        product.${aliasedAs(FIELDS.products.packageSize)},
+        product.${aliasedAs(FIELDS.products.inStock)},
+        product.${aliasedAs(FIELDS.products.isNew)},
+        product.${aliasedAs(FIELDS.products.description)},
+        product.${aliasedAs(FIELDS.products.review)},
+        product.${aliasedAs(FIELDS.products.keywords)},
+        product.${aliasedAs(FIELDS.products.otherPhotos)}
       FROM ${ENTITIES.productCategories} AS category
       JOIN ${ENTITIES.products} AS product ON category.id = product.${FIELDS.products.category}
       ORDER BY category.id;
     `) as RowDataPacket[][];
+    return products;
+  }
+
+  public async fetchProducts(productIDs: number[]): Promise<RowDataPacket[]> {
+    const [products] = await this.conn.execute(
+      `SELECT * FROM ${ENTITIES.products}
+      WHERE id IN ?`,
+      [productIDs]
+    ) as RowDataPacket[][];
     return products;
   }
 
@@ -144,25 +161,192 @@ export class DBSession {
   public async fetchOrderItemsView(orderID: number): Promise<RowDataPacket[]> {
     const [orderItems] = await this.conn.execute(
       `SELECT
-      item.${aliasedAs(FIELDS.order_items.product, "productID")},
-      item.${aliasedAs(FIELDS.order_items.quantity)},
-      item.${aliasedAs(FIELDS.order_items.taxed_price, "price")},
-      product.${aliasedAs(FIELDS.products.photo)},
-      product.${aliasedAs(FIELDS.products.article)},
-      product.${aliasedAs(FIELDS.products.recomendedMinimalSize)},
-      product.${aliasedAs(FIELDS.products.boxSize)},
-      product.${aliasedAs(FIELDS.products.packageSize)},
-      product.${aliasedAs(FIELDS.products.inStock)},
-      product.${aliasedAs(FIELDS.products.isNew)},
-      product.${aliasedAs(FIELDS.products.description)},
-      product.${aliasedAs(FIELDS.products.review)},
-      product.${aliasedAs(FIELDS.products.keywords)},
-      product.${aliasedAs(FIELDS.products.otherPhotos)}
-      FROM ${ENTITIES.order_items} as item
+        item.${aliasedAs(FIELDS.orderItems.product, "productID")},
+        item.${aliasedAs(FIELDS.orderItems.quantity)},
+        item.${aliasedAs(FIELDS.orderItems.taxedPrice, "price")},
+        product.${aliasedAs(FIELDS.products.photo)},
+        product.${aliasedAs(FIELDS.products.article)},
+        product.${aliasedAs(FIELDS.products.recomendedMinimalSize)},
+        product.${aliasedAs(FIELDS.products.boxSize)},
+        product.${aliasedAs(FIELDS.products.packageSize)},
+        product.${aliasedAs(FIELDS.products.inStock)},
+        product.${aliasedAs(FIELDS.products.isNew)},
+        product.${aliasedAs(FIELDS.products.description)},
+        product.${aliasedAs(FIELDS.products.review)},
+        product.${aliasedAs(FIELDS.products.keywords)},
+        product.${aliasedAs(FIELDS.products.otherPhotos)}
+      FROM ${ENTITIES.orderItems} as item
       WHERE item.parent_item_id = ?
       JOIN ${ENTITIES.products} AS product ON item.productID = product.id`,
       [orderID]
     ) as RowDataPacket[][];
     return orderItems;
+  }
+
+  public async createOrder(
+    title: string,
+    clientID: number,
+    phoneNumber: string,
+    email: string,
+    address: string,
+    companyName: string,
+    inn: string,  // TODO: is it?
+    personalDiscount: number,
+    comment: string,
+    paymentMethod: typeof VALUES.orders.paymentMethod[keyof typeof VALUES.orders.paymentMethod],
+    deliveryMethod: typeof VALUES.orders.deliveryMethod[keyof typeof VALUES.orders.deliveryMethod],
+    products: {[id: number]: {quantity: number}}
+  ): Promise<{orderID: number, items: [RowDataPacket, typeof products[keyof typeof products]][]}> {
+    const [insertResult] = await this.conn.execute(
+      `INSERT INTO ${ENTITIES.orders}(
+        parent_id,
+        parent_item_id,
+        linked_id,
+        date_added,
+        date_updated,
+        created_by,
+        sort_order,
+        ${FIELDS.orders.title},
+        ${FIELDS.orders.client},
+        ${FIELDS.orders.phoneNumber},
+        ${FIELDS.orders.email},
+        ${FIELDS.orders.address},
+        ${FIELDS.orders.companyName},
+        ${FIELDS.orders.inn},
+        ${FIELDS.orders.status},
+        ${FIELDS.orders.personalDiscount},
+        ${FIELDS.orders.comment},
+        ${FIELDS.orders.paymentMethod},
+        ${FIELDS.orders.deliveryMethod}
+      ) VALUES ?`,
+      [[[
+        0,
+        0,
+        0,
+        Date.now() / 1000,
+        Date.now() / 1000,
+        1,
+        0,
+        title,
+        clientID,
+        phoneNumber,
+        email,
+        address,
+        companyName,
+        inn,
+        VALUES.orders.status.new,
+        personalDiscount,
+        comment,
+        paymentMethod,
+        deliveryMethod,
+      ]]]
+    ) as ResultSetHeader[];
+    const orderID = insertResult.insertId;
+
+    await this.conn.query(
+      `INSERT INTO ${ENTITIES.orders}_values(items_id, fields_id, value) VALUES ?`,
+      [[
+        [orderID, FIELDS_RAW.orders.client, clientID],
+        [orderID, FIELDS_RAW.orders.paymentMethod, paymentMethod],
+        [orderID, FIELDS_RAW.orders.deliveryMethod, deliveryMethod],
+      ]]
+    );
+
+    let fetchedProducts: [RowDataPacket, typeof products[keyof typeof products]][] = (
+      (await this.fetchProducts(Object.entries(products).map(([id, data], i) => Number(id))))
+      .map((row) => [row, products[row.id]])
+    );
+    let insertOrderItemsResult = await this.conn.execute(
+      `INSERT INTO ${ENTITIES.orderItems}(
+        parent_id,
+        parent_item_id,
+        linked_id,
+        date_added,
+        created_by,
+        sort_order,
+        ${FIELDS.orderItems.product},
+        ${FIELDS.orderItems.quantity},
+        ${FIELDS.orderItems.price},
+        ${FIELDS.orderItems.recomendedMinimalSize},
+        ${FIELDS.orderItems.amount},
+        ${FIELDS.orderItems.boxesCount},
+        ${FIELDS.orderItems.boxSize},
+        ${FIELDS.orderItems.category},
+        ${FIELDS.orderItems.tax},
+        ${FIELDS.orderItems.packageSize},
+        ${FIELDS.orderItems.article}
+      ) VALUES ?`,
+      [[
+        fetchedProducts.map(
+          ([product, data], i) => [
+            0,
+            0,
+            0,
+            Date.now() / 1000,
+            Date.now() / 1000,
+            1,
+            0,
+            product.id,
+            data.quantity,
+            product[FIELDS.products.price],
+            product[FIELDS.products.recomendedMinimalSize],
+            product[FIELDS.products.price] * data.quantity,
+            new Decimal(data.quantity).div(product[FIELDS.products.boxSize]).toFixed(6),
+            product[FIELDS.products.boxSize],
+            product[FIELDS.products.category],  // FIXME: CATEGORY SHOULD BE TRANSLATED
+            product[FIELDS.products.tax],
+            product[FIELDS.products.packageSize],
+            product[FIELDS.products.article]
+          ]
+        )
+      ]]
+    ) as ResultSetHeader[];
+
+    await this.conn.query(
+      `INSERT INTO ${ENTITIES.orderItems}_values (items_id, fields_id, value) VALUES ?`,
+      [[
+        fetchedProducts.map(
+          ([product, data], i) => {
+            let itemID = insertOrderItemsResult[i];
+            [
+              [itemID, FIELDS_RAW.orderItems.product, product.id],
+              [itemID, FIELDS_RAW.orderItems.category, product[FIELDS.products.category]],
+              [itemID, FIELDS_RAW.orderItems.tax, product[FIELDS.products.tax]]
+            ]
+          }
+        ).flat(1)
+      ]]
+    );
+
+    await this.conn.commit();
+    return {orderID: orderID, items: fetchedProducts};
+  }
+
+  public async updateClientData(
+    clientID: number,
+    fullName: string,
+    ruPhoneNumber: string,
+    address: string,
+    companyName: string,
+    inn: string
+  ): Promise<void> {
+    await this.conn.query(
+      `UPDATE ${ENTITIES.clients}
+      SET
+        ${FIELDS.clients.fullName} = ?,
+        ${FIELDS.clients.ruPhoneNumber} = ?,
+        ${FIELDS.clients.address} = ?,
+        ${FIELDS.clients.companyName} = ?,
+        ${FIELDS.clients.inn} = ?
+      WHERE id = ?;`,
+      [
+        fullName,
+        ruPhoneNumber,
+        address,
+        companyName,
+        inn,
+        clientID
+      ]
+    );
   }
 }

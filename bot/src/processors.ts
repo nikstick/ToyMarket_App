@@ -1,8 +1,13 @@
+import type { Socket } from "node:net";
+
+import ipc from "node-ipc";
+
 import { ENTITIES_RAW, FIELDS_RAW, VALUES, ENTITIES, FIELDS } from "common/structures";
+import type { NewOrder } from "common/ipc";
 
 import { DBSession, NotificationType } from "./db";
 import { spruton } from "./controllers";
-import { bot, sendAccessibleNotify } from "./bot";
+import { bot, sendAccessibleNotify, sendNewOrder } from "./bot";
 
 async function performBroadcast() {
   for await (const session of DBSession.ctx()) {
@@ -51,3 +56,15 @@ async function performAccessibleNotify() {
 
 setTimeout(performAccessibleNotify, 5 * 1000)
 setInterval(performAccessibleNotify, 60 * 1000);
+
+ipc.config.id = "bot";
+ipc.serve(
+  () => {
+    ipc.server.on(
+      "newOrder",
+      (data: NewOrder, socket: Socket) => {
+        sendNewOrder(data).then();
+      }
+    )
+  }
+);
