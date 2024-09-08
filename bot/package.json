@@ -10,7 +10,7 @@
   "author": "lightmanLP",
   "license": "",
   "dependencies": {
-    "@achrinza/node-ipc": "^10.1.11",
+    "node-ipc": "npm:@achrinza/node-ipc",
     "@grammyjs/auto-retry": "^1.1.1",
     "@grammyjs/conversations": "^1.1.2",
     "common": "^1.0.0",
