@@ -4,5 +4,6 @@
     "common",
     "bot",
     "backend"
-  ]
+  ],
+  "version": "0.0.0"
 }
