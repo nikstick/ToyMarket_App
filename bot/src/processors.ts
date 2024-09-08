@@ -2,12 +2,12 @@ import type { Socket } from "node:net";
 
 import ipc from "node-ipc";
 
-import { ENTITIES_RAW, FIELDS_RAW, VALUES, ENTITIES, FIELDS } from "common/structures";
-import type { NewOrder } from "common/ipc";
+import { FIELDS_RAW, FIELDS } from "common/structures.js";
+import type { NewOrder } from "common/ipc.js";
 
-import { DBSession, NotificationType } from "./db";
-import { spruton } from "./controllers";
-import { bot, sendAccessibleNotify, sendNewOrder } from "./bot";
+import { DBSession, NotificationType } from "./db.js";
+import { spruton } from "./controllers.js";
+import { bot, sendAccessibleNotify, sendNewOrder } from "./bot.js";
 
 async function performBroadcast() {
   for await (const session of DBSession.ctx()) {

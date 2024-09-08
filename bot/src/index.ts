@@ -1,4 +1,4 @@
-import { bot } from "./bot";
-import "./processors";
+import { bot } from "./bot.js";
+import "./processors.js";
 
 bot.start();

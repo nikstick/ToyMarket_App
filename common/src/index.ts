@@ -1,5 +1,5 @@
-export * as structures from "./structures";
-export * as utils from "./utils";
-export * as controllers from "./controllers";
-export * as db from "./db";
-export * as ipc from "./ipc";
+export * as structures from "./structures.js";
+export * as utils from "./utils.js";
+export * as controllers from "./controllers.js";
+export * as db from "./db.js";
+export * as ipc from "./ipc.js";

@@ -9,8 +9,8 @@ import {
 import type { Config } from "convict";
 import { Decimal } from "decimal.js";
 
-import { ENTITIES_RAW, FIELDS_RAW, VALUES, ENTITIES, FIELDS } from "./structures";
-import { aliasedAs, assert, AssertionError } from "./utils";
+import { ENTITIES_RAW, FIELDS_RAW, VALUES, ENTITIES, FIELDS } from "./structures.js";
+import { aliasedAs, assert, AssertionError } from "./utils.js";
 
 interface DBConfigSchema {
   db: {

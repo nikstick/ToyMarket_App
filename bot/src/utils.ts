@@ -4,7 +4,7 @@ import { Cache } from "node-ts-cache";
 import { MemoryStorage } from "node-ts-cache-storage-memory";
 import { Eta } from "eta";
 
-import { IgnorableCacheContainer } from "common/utils";
+import { IgnorableCacheContainer } from "common/utils.js";
 
 export const cacheStorage = new IgnorableCacheContainer(new MemoryStorage());
 

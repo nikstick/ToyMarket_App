@@ -1,10 +1,10 @@
-import type { Pool, PoolConnection, RowDataPacket } from "mysql2/promise";
+import type { RowDataPacket } from "mysql2/promise";
 
-import { ENTITIES_RAW, FIELDS_RAW, ENTITIES, FIELDS, VALUES } from "common/structures";
-import { PoolManager, DBSession as DBSessionOrigin } from "common/db";
-import { assert } from "common/utils";
+import { ENTITIES, FIELDS, VALUES } from "common/structures.js";
+import { PoolManager, DBSession as DBSessionOrigin } from "common/db.js";
+import { assert } from "common/utils.js";
 
-import { config } from "./config";
+import { config } from "./config.js";
 
 export enum NotificationType {
   ACCESSIBLE = "accessible",

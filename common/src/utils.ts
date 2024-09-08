@@ -1,6 +1,6 @@
 import { CacheContainer, ICachingOptions } from "node-ts-cache";
 
-import { CacheKeySpec, FIELD_ALIAS } from "./structures";
+import { CacheKeySpec, FIELD_ALIAS } from "./structures.js";
 
 export function mapObj<T, R>(
   obj: {[key: string]: T},

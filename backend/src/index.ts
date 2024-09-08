@@ -6,15 +6,15 @@ import bodyParser from "body-parser";
 import type { RowDataPacket } from "mysql2/promise";
 import ipc from "node-ipc";
 
-import { ENTITIES, ENTITIES_RAW, FIELDS, FIELDS_RAW } from "common/structures";
-import type { NewOrder } from "common/ipc";
+import { ENTITIES, ENTITIES_RAW, FIELDS, FIELDS_RAW } from "common/structures.js";
+import { assert } from "common/utils.js";
+import type { NewOrder } from "common/ipc.js";
 
-import { config } from "./config";
-import { spruton, storage } from "./controllers";
-import { DBSession } from "./db";
-import { assert } from "common/utils";
-import { uselessFront } from "./utils";
-import { ORDER_PLACEHOLDER, valuesTranslation } from "./structures";
+import { config } from "./config.js";
+import { spruton, storage } from "./controllers.js";
+import { DBSession } from "./db.js";
+import { uselessFront } from "./utils.js";
+import { ORDER_PLACEHOLDER, valuesTranslation } from "./structures.js";
 
 const app = express();
 app.use(cors());

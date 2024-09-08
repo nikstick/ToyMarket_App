@@ -1,4 +1,4 @@
-import { mapObj } from "./utils";
+import { mapObj } from "./utils.js";
 
 export const ENTITIES_RAW = {
   users: 1,

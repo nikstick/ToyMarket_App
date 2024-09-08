@@ -3,7 +3,7 @@ import type { Writable } from "node:stream";
 import axios from "axios";
 import type { Config } from "convict";
 
-import { ENTITIES_RAW, FIELDS_RAW, VALUES, ENTITIES, FIELDS, SprutonItem } from "./structures";
+import { ENTITIES_RAW, SprutonItem } from "./structures.js";
 
 interface SprutonConfigSchema {
   spruton: {

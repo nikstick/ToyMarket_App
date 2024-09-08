@@ -2,11 +2,11 @@ import type { RowDataPacket } from "mysql2/promise";
 import { Cache } from "node-ts-cache";
 import ipc from "node-ipc";
 
-import { Spruton } from "common/controllers";
+import { Spruton } from "common/controllers.js";
 
-import { config } from "./config";
-import { DBSession } from "./db";
-import { cacheStorage, uselessFront } from "./utils";
+import { config } from "./config.js";
+import { DBSession } from "./db.js";
+import { cacheStorage, uselessFront } from "./utils.js";
 
 export var spruton = new Spruton(config);
 

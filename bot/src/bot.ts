@@ -8,12 +8,12 @@ import {
 } from "@grammyjs/conversations";
 import { type PhoneNumber, parsePhoneNumber, ParseError } from "libphonenumber-js";
 
-import type { NewOrder } from "common/ipc";
+import type { NewOrder } from "common/ipc.js";
 
-import { config } from "./config";
-import { StaticUtils } from "./utils";
-import { storage } from "./controllers";
-import { DBSession } from "./db";
+import { config } from "./config.js";
+import { StaticUtils } from "./utils.js";
+import { storage } from "./controllers.js";
+import { DBSession } from "./db.js";
 
 type MyContext = Context & ConversationFlavor;
 type MyConversation = Conversation<MyContext>;
