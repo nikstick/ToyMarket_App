@@ -3,7 +3,7 @@
     "target": "ES6",
     "rootDir": "src",
     "outDir": "dist",
-    "moduleResolution":"node",
+    "moduleResolution": "node",
     "paths": {"./*": ["./src/*"], "common/*": ["../common/src/*"]},
     "allowSyntheticDefaultImports": true,
     "emitDecoratorMetadata": true,
