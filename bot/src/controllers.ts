@@ -2,7 +2,7 @@ import { Cache } from "node-ts-cache";
 
 import { Spruton } from "common/controllers";
 
-import { IgnorableCacheContainer, cacheStorage } from "./utils";
+import { cacheStorage } from "./utils";
 import { config } from "./config";
 import { DBSession, NotificationType } from "./db";
 
