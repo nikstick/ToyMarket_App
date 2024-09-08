@@ -1,14 +1,18 @@
 {
   "compilerOptions": {
     "target": "ES6",
+    "rootDir": "src",
     "outDir": "dist",
     "moduleResolution":"node",
     "paths": {"./*": ["./src/*"], "common/*": ["../common/src/*"]},
     "allowSyntheticDefaultImports": true,
     "emitDecoratorMetadata": true,
-    "experimentalDecorators": true
+    "experimentalDecorators": true,
+    "composite": true,
+    "esModuleInterop": true
   },
-  "include": [
-    "src/**/*"
-, "../common/src/db.ts"  ]
+  "include": ["src/**/*"],
+  "references": [
+    {"path": "../common"}
+  ]
 }

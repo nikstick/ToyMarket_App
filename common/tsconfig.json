@@ -1,12 +1,14 @@
 {
   "compilerOptions": {
     "target": "ES6",
+    "rootDir": "src",
     "outDir": "dist",
     "moduleResolution": "node",
     "paths": {"./*": ["./src/*"]},
     "allowSyntheticDefaultImports": true,
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
+    "composite": true,
     "esModuleInterop": true,
 	  "declaration": true
   },

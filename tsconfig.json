@@ -1,0 +1,14 @@
+{
+    "references": [
+        {"path": "./common"},
+        {"path": "./bot"},
+        {"path": "./backend"}
+    ],
+    "exclude": ["**/node_modules"],
+    "compilerOptions": {
+        "allowSyntheticDefaultImports": true,
+        "emitDecoratorMetadata": true,
+        "experimentalDecorators": true,
+        "esModuleInterop": true
+    }
+}

@@ -13,7 +13,7 @@
     "@achrinza/node-ipc": "^10.1.11",
     "@exode-team/tinkoff.checkout": "1.0.77",
     "body-parser": "^1.20.2",
-    "common": "file:../common",
+    "common": "^1.0.0",
     "convict": "^6.2.4",
     "convict-format-with-validator": "^6.2.0",
     "cors": "^2.8.5",
