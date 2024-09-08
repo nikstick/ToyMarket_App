@@ -1,4 +1,4 @@
-import { VALUES } from "common/structures.js";
+import { VALUES } from "common/dist/structures.js";
 
 export const valuesTranslation = {
   deliveryMethod: {

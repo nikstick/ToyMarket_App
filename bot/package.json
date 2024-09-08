@@ -5,25 +5,27 @@
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
-    "build": "npx tsc --build"
+    "build": "npx tsc --build",
+    "start": "node dist/index.js"
   },
   "author": "lightmanLP",
   "license": "",
   "dependencies": {
-    "node-ipc": "npm:@achrinza/node-ipc",
     "@grammyjs/auto-retry": "^1.1.1",
     "@grammyjs/conversations": "^1.1.2",
-    "common": "^1.0.0",
+    "common": "workspace:^",
     "convict": "^6.2.4",
     "convict-format-with-validator": "^6.2.0",
     "eta": "^3.1.1",
     "grammy": "^1.19.2",
     "js-yaml": "^4.1.0",
     "libphonenumber-js": "^1.10.49",
+    "node-ipc": "achrinza/node-ipc",
     "node-ts-cache": "^4.4.0",
     "node-ts-cache-storage-memory": "^4.4.0"
   },
   "devDependencies": {
+    "@grammyjs/types": "^3.14.0",
     "@types/convict": "^6.1.6",
     "@types/convict-format-with-validator": "^6.0.5",
     "@types/js-yaml": "^4.0.9",

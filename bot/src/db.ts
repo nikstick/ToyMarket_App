@@ -1,8 +1,8 @@
 import type { RowDataPacket } from "mysql2/promise";
 
-import { ENTITIES, FIELDS, VALUES } from "common/structures.js";
-import { PoolManager, DBSession as DBSessionOrigin } from "common/db.js";
-import { assert } from "common/utils.js";
+import { ENTITIES, FIELDS, VALUES } from "common/dist/structures.js";
+import { PoolManager, DBSession as DBSessionOrigin } from "common/dist/db.js";
+import { assert } from "common/dist/utils.js";
 
 import { config } from "./config.js";
 

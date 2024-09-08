@@ -53,5 +53,5 @@ export var config = convict({
     }
   }
 });
-config.loadFile("./config.yml");
+config.loadFile("../config.yml");
 config.validate({allowed: "warn"});

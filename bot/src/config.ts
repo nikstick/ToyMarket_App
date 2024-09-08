@@ -53,5 +53,5 @@ export var config = convict({
     managerID: {format: "int", default: EMPTY_N}
   }
 });
-config.loadFile("./config.yml");
+config.loadFile("../config.yml");
 config.validate({allowed: "warn"});

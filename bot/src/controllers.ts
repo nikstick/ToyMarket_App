@@ -1,6 +1,6 @@
 import { Cache } from "node-ts-cache";
 
-import { Spruton } from "common/controllers.js";
+import { Spruton } from "common/dist/controllers.js";
 
 import { cacheStorage } from "./utils.js";
 import { config } from "./config.js";

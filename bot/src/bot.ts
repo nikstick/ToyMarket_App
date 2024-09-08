@@ -8,7 +8,7 @@ import {
 } from "@grammyjs/conversations";
 import { type PhoneNumber, parsePhoneNumber, ParseError } from "libphonenumber-js";
 
-import type { NewOrder } from "common/ipc.js";
+import type { NewOrder } from "common/dist/ipc.js";
 
 import { config } from "./config.js";
 import { StaticUtils } from "./utils.js";

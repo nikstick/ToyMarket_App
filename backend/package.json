@@ -6,20 +6,20 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "npx tsc --build",
-    "run": "node index.js"
+    "start": "node dist/index.js"
   },
   "author": "lightmanLP",
   "license": "",
   "dependencies": {
-    "node-ipc": "npm:@achrinza/node-ipc",
     "@exode-team/tinkoff.checkout": "1.0.77",
     "body-parser": "^1.20.2",
-    "common": "^1.0.0",
+    "common": "workspace:^",
     "convict": "^6.2.4",
     "convict-format-with-validator": "^6.2.0",
     "cors": "^2.8.5",
     "express": "^4.19.2",
     "js-yaml": "^4.1.0",
+    "node-ipc": "achrinza/node-ipc",
     "node-ts-cache": "^4.4.0",
     "node-ts-cache-storage-memory": "^4.4.0"
   },

@@ -2,8 +2,8 @@ import type { Socket } from "node:net";
 
 import ipc from "node-ipc";
 
-import { FIELDS_RAW, FIELDS } from "common/structures.js";
-import type { NewOrder } from "common/ipc.js";
+import { FIELDS_RAW, FIELDS } from "common/dist/structures.js";
+import type { NewOrder } from "common/dist/ipc.js";
 
 import { DBSession, NotificationType } from "./db.js";
 import { spruton } from "./controllers.js";

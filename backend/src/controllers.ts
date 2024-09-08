@@ -2,7 +2,7 @@ import type { RowDataPacket } from "mysql2/promise";
 import { Cache } from "node-ts-cache";
 import ipc from "node-ipc";
 
-import { Spruton } from "common/controllers.js";
+import { Spruton } from "common/dist/controllers.js";
 
 import { config } from "./config.js";
 import { DBSession } from "./db.js";
