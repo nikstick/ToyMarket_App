@@ -51,6 +51,18 @@ export var config = convict({
       sensitive: true,
       default: EMPTY_S
     }
+  },
+  tinkoff: {
+    terminalKey: {
+      format: String,
+      sensitive: true,
+      default: EMPTY_S
+    },
+    secretKey: {
+      format: String,
+      sensitive: true,
+      default: EMPTY_S
+    }
   }
 });
 config.loadFile("../config.yml");

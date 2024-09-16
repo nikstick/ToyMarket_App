@@ -7,12 +7,12 @@ import bodyParser from "body-parser";
 import type { RowDataPacket } from "mysql2/promise";
 import ipc from "node-ipc";
 
-import { ENTITIES, ENTITIES_RAW, FIELDS, FIELDS_RAW } from "common/dist/structures.js";
+import { ENTITIES, ENTITIES_RAW, FIELDS, FIELDS_RAW, VALUES } from "common/dist/structures.js";
 import { assert } from "common/dist/utils.js";
 import type { NewOrder } from "common/dist/ipc.js";
 
 import { config } from "./config.js";
-import { spruton, storage } from "./controllers.js";
+import { spruton, storage, tinkoff } from "./controllers.js";
 import { DBSession } from "./db.js";
 import { uselessFront } from "./utils.js";
 import { ORDER_PLACEHOLDER, valuesTranslation } from "./structures.js";
