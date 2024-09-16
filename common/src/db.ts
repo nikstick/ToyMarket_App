@@ -288,7 +288,7 @@ export class DBSession {
         ${FIELDS.orderItems.packageSize},
         ${FIELDS.orderItems.article}
       ) VALUES ?`,
-      [[
+      [
         fetchedProducts.map(
           ([product, data], i) => [
             0,
@@ -311,12 +311,12 @@ export class DBSession {
             product[FIELDS.products.article]
           ]
         )
-      ]]
+      ]
     ) as ResultSetHeader[];
 
     await this.conn.query(
       `INSERT INTO ${ENTITIES.orderItems}_values (items_id, fields_id, value) VALUES ?`,
-      [[
+      [
         fetchedProducts.map(
           ([product, data], i) => {
             let itemID = insertOrderItemsResult[i];
@@ -327,7 +327,7 @@ export class DBSession {
             ]
           }
         ).flat(1)
-      ]]
+      ]
     );
 
     await this.conn.commit();
