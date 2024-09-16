@@ -141,8 +141,10 @@ export class DBSession {
 
   public async fetchProducts(productIDs: number[]): Promise<RowDataPacket[]> {
     const [products] = await this.conn.execute(
-      `SELECT * FROM ${ENTITIES.products}
-      WHERE id IN ?`,
+      `SELECT product.*, ${Object.values(FIELDS.prices).map((v) => "price." + v).join(", ")}
+      FROM ${ENTITIES.products} AS product
+      JOIN ${ENTITIES.prices} AS price ON price.parent_item_id = product.id
+      WHERE price.${FIELDS.prices.isCurrent} = "true" AND product.id IN ?`,
       [productIDs]
     ) as RowDataPacket[][];
     return products;
@@ -279,7 +281,7 @@ export class DBSession {
       [[
         fetchedProducts.map(
           ([product, data], i) => [
-            ENTITIES_RAW.orders,
+            0,
             orderID,
             0,
             Date.now() / 1000,
@@ -288,9 +290,9 @@ export class DBSession {
             0,
             product.id,
             data.quantity,
-            product[FIELDS.products.price],
+            product[FIELDS.prices.discountedPrice],
             product[FIELDS.products.recomendedMinimalSize],
-            product[FIELDS.products.price] * data.quantity,
+            product[FIELDS.prices.discountedPrice] * data.quantity,
             new Decimal(data.quantity).div(product[FIELDS.products.boxSize]).toFixed(6),
             product[FIELDS.products.boxSize],
             product[FIELDS.products.category],  // FIXME: CATEGORY SHOULD BE TRANSLATED

@@ -8,6 +8,7 @@ export const ENTITIES_RAW = {
   orderItems: 28,
   clients: 29,
   news: 30,
+  prices: 31
 } as const;
 export const FIELDS_RAW = {
   users: {
@@ -81,6 +82,14 @@ export const FIELDS_RAW = {
     amount: 366,
     packageSize: 385,
     article: 399,
+  },
+  prices: {
+    price: 313,
+    isCurrent: 314,
+    discount: 321,
+    discountedPrice: 322,
+    article: 373,
+    code: 374
   }
 } as const;
 export const VALUES = {
