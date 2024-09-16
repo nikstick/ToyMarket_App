@@ -28,7 +28,7 @@ export function aliasedAs(field: string, alias?: string): string {
   if (typeof alias === "undefined") {
     alias = FIELD_ALIAS[field];
   }
-  return `'${field}' AS '${alias}'`
+  return `${field} AS ${alias}`
 }
 
 export class IgnorableCacheContainer extends CacheContainer {

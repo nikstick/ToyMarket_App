@@ -225,14 +225,14 @@ app.post(
         comment,
         valuesTranslation.paymentMethod[payBy.toLowerCase()],
         valuesTranslation.deliveryMethod[delivery.toLowerCase()],
-        products.map(
+        Object.fromEntries(products.map(
           (product) => {
             // FIXME: funny and woozy
             let { id, quantity, inBox } = product;
             quantity = Math.ceil(quantity * inBox);
-            return {[id]: quantity};
+            return [id, {quantity: quantity}];
           }
-        )
+        ))
       );
 
       await session.updateClientData(

@@ -136,16 +136,21 @@ export class DBSession {
       JOIN ${ENTITIES.products} AS product ON category.id = product.${FIELDS.products.category}
       ORDER BY category.id;
     `) as RowDataPacket[][];
-    return products;
+    return products.map(
+        (product) => {
+	    product.otherPhotos = (product.otherPhotos ? product.otherPhotos.split(",") : []);
+	    return product;
+	}
+    );
   }
 
   public async fetchProducts(productIDs: number[]): Promise<RowDataPacket[]> {
-    const [products] = await this.conn.execute(
+    const [products] = await this.conn.query(
       `SELECT product.*, ${Object.values(FIELDS.prices).map((v) => "price." + v).join(", ")}
       FROM ${ENTITIES.products} AS product
       JOIN ${ENTITIES.prices} AS price ON price.parent_item_id = product.id
       WHERE price.${FIELDS.prices.isCurrent} = "true" AND product.id IN ?`,
-      [productIDs]
+      [[productIDs]]
     ) as RowDataPacket[][];
     return products;
   }
@@ -182,7 +187,12 @@ export class DBSession {
       JOIN ${ENTITIES.products} AS product ON item.productID = product.id`,
       [orderID]
     ) as RowDataPacket[][];
-    return orderItems;
+    return orderItems.map(
+        (item) => {
+            item.otherPhotos = (item.otherPhotos ? item.otherPhotos.split(",") : []);
+            return item;
+        }
+    );
   }
 
   public async createOrder(
@@ -199,7 +209,7 @@ export class DBSession {
     deliveryMethod: typeof VALUES.orders.deliveryMethod[keyof typeof VALUES.orders.deliveryMethod],
     products: {[id: number]: {quantity: number}}
   ): Promise<{orderID: number, items: [RowDataPacket, typeof products[keyof typeof products]][]}> {
-    const [insertResult] = await this.conn.execute(
+    const [insertResult] = await this.conn.query(
       `INSERT INTO ${ENTITIES.orders}(
         parent_id,
         parent_item_id,
@@ -255,10 +265,10 @@ export class DBSession {
     );
 
     let fetchedProducts: [RowDataPacket, typeof products[keyof typeof products]][] = (
-      (await this.fetchProducts(Object.entries(products).map(([id, data], i) => Number(id))))
+      (await this.fetchProducts(Object.entries(products).map((product, i) => Number(product[0]))))
       .map((row) => [row, products[row.id]])
     );
-    let insertOrderItemsResult = await this.conn.execute(
+    let insertOrderItemsResult = await this.conn.query(
       `INSERT INTO ${ENTITIES.orderItems}(
         parent_id,
         parent_item_id,
@@ -293,7 +303,7 @@ export class DBSession {
             product[FIELDS.prices.discountedPrice],
             product[FIELDS.products.recomendedMinimalSize],
             product[FIELDS.prices.discountedPrice] * data.quantity,
-            new Decimal(data.quantity).div(product[FIELDS.products.boxSize]).toFixed(6),
+            (new Decimal(data.quantity)).div(product[FIELDS.products.boxSize]).toFixed(6),
             product[FIELDS.products.boxSize],
             product[FIELDS.products.category],  // FIXME: CATEGORY SHOULD BE TRANSLATED
             product[FIELDS.products.tax],
