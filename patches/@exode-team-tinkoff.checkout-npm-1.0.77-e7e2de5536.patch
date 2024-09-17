@@ -53,7 +53,7 @@ index 2d041bb4c7b034c58e513d769ec0403e88a64712..3ba13bf995d3c0ce1f43176f81fa8b40
  
  /**
 diff --git a/dist/types/utilities/item.d.ts b/dist/types/utilities/item.d.ts
-index 0e7f53247c63d4854be390f6c886b8d0ad713630..3603da666fa8c019121490977f4ae76a6e0f9226 100644
+index 0e7f53247c63d4854be390f6c886b8d0ad713630..4307e8bb6aa4d4b7dc7e055a51fa11cd3e89c34f 100644
 --- a/dist/types/utilities/item.d.ts
 +++ b/dist/types/utilities/item.d.ts
 @@ -1,8 +1,8 @@
@@ -68,6 +68,15 @@ index 0e7f53247c63d4854be390f6c886b8d0ad713630..3603da666fa8c019121490977f4ae76a
  
  
  /**
+@@ -42,7 +42,7 @@ export interface Item {
+     /**
+      * Tax for payment
+      */
+-    Tax: Tax;
++    Tax: Tax[keyof Tax];
+ 
+     /**
+      * Product labeling
 diff --git a/dist/types/utilities/receipt.d.ts b/dist/types/utilities/receipt.d.ts
 index 09878fde34b49802802947e84b03097e654e6d57..5ddcfa9cb145140908c44de98daa3a5df179b812 100644
 --- a/dist/types/utilities/receipt.d.ts

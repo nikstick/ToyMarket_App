@@ -269,6 +269,72 @@ app.post(
   return res.status(200).json({status: "ok", orderID: orderID});
 });
 
+interface PaymentInitResponse {status: "ok", amount: number, url: string};
+app.post(
+  "/api/pay/init",
+  async (req: Request, res: Response) => {
+    let {
+      orderID
+    } = req.body;
+    assert(typeof orderID !== "undefined");
+
+    const TAX_TRANSLATION = {
+      [VALUES.global.tax.none]: "none",
+      [VALUES.global.tax.perc10]: "van10",
+      [VALUES.global.tax.perc20]: "van20"
+    } as const;
+
+    for await (const session of DBSession.ctx()) {
+      const order = await session.fetchOrder(orderID);
+      const items = await session.fetchOrderItems(orderID);
+
+      const data = await tinkoff.initPayment(
+        {
+          Amount: order[FIELDS.orders.amount] * 100,
+          OrderId: orderID,
+          DATA: {
+            Email: order[FIELDS.orders.email],
+            Phone: order[FIELDS.orders.phoneNumber],
+            DefaultCard: "none"  // TODO: maybe save card
+          },
+          Receipt: {
+            Email: order[FIELDS.orders.email],
+            Phone: order[FIELDS.orders.phoneNumber],
+            Taxation: "osn",
+            Items: items.map(
+              (item) => {
+                return {
+                  Name: item[FIELDS.orderItems.article],
+                  Price: item[FIELDS.orderItems.price] * 100,
+                  Quantity: item[FIELDS.orderItems.quantity],
+                  Amount: item[FIELDS.orderItems.amount] * 100,
+                  Tax: TAX_TRANSLATION[item[FIELDS.orderItems.tax]]
+                };
+              }
+            )
+          }
+        }
+      );
+      assert(typeof data !== "undefined");
+      if(!data.Success) {
+        return res.status(500).json(
+          {
+            "error": true,
+            "reason": `payment system failed with code ${data.ErrorCode}`
+          } as IErrorResponse
+        );
+      }
+
+      return res.json(
+        {
+          status: "ok",
+          amount: data.Amount,
+          url: data.PaymentURL
+        } as PaymentInitResponse
+      )
+    }
+  }
+)
 
 const server = http.createServer(app);
 {
