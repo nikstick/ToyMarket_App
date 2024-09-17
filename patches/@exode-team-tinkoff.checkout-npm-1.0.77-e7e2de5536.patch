@@ -1,0 +1,83 @@
+diff --git a/dist/types/dto/cancelPayment.d.ts b/dist/types/dto/cancelPayment.d.ts
+index f769578fe546df92862b2bc1ae6a10958d6dca52..11673623ec58699c67ea0cb3b0c76d2e2cefe638 100644
+--- a/dist/types/dto/cancelPayment.d.ts
++++ b/dist/types/dto/cancelPayment.d.ts
+@@ -1,4 +1,4 @@
+-import { Receipt } from 'utilities/receipt';
++import { Receipt } from '../utilities/receipt';
+ 
+ 
+ /**
+diff --git a/dist/types/dto/confirmPayment.d.ts b/dist/types/dto/confirmPayment.d.ts
+index 01ef901473710fa90241d6805fdda48253cbd719..b01a27cd5eace38677a2bc4ab83d2638be4d9e3d 100644
+--- a/dist/types/dto/confirmPayment.d.ts
++++ b/dist/types/dto/confirmPayment.d.ts
+@@ -1,4 +1,4 @@
+-import { Receipt } from 'utilities/receipt';
++import { Receipt } from '../utilities/receipt';
+ 
+ 
+ /**
+diff --git a/dist/types/dto/getCardList.d.ts b/dist/types/dto/getCardList.d.ts
+index 729be632d2e9f67e462d369f82885e0d7cd61468..233e5fb19177edef51f7466049b7c3b3875f6437 100644
+--- a/dist/types/dto/getCardList.d.ts
++++ b/dist/types/dto/getCardList.d.ts
+@@ -1,4 +1,4 @@
+-import { Card } from 'utilities/card';
++import { Card } from '../utilities/card';
+ 
+ 
+ /**
+diff --git a/dist/types/dto/initPayment.d.ts b/dist/types/dto/initPayment.d.ts
+index 28a69371c05c6901f7e4ed7eb4c99d01b4a0982d..d26bd60d8df103569940014fcba5a422d3c76c9e 100644
+--- a/dist/types/dto/initPayment.d.ts
++++ b/dist/types/dto/initPayment.d.ts
+@@ -1,6 +1,6 @@
+-import { Receipt } from 'utilities/receipt';
+-import { Language } from 'utilities/language';
+-import { PayType } from 'utilities/payType';
++import { Receipt } from '../utilities/receipt';
++import { Language } from '../utilities/language';
++import { PayType } from '../utilities/payType';
+ 
+ 
+ /**
+diff --git a/dist/types/dto/paymentState.d.ts b/dist/types/dto/paymentState.d.ts
+index 2d041bb4c7b034c58e513d769ec0403e88a64712..3ba13bf995d3c0ce1f43176f81fa8b40bc27e5a6 100644
+--- a/dist/types/dto/paymentState.d.ts
++++ b/dist/types/dto/paymentState.d.ts
+@@ -1,4 +1,4 @@
+-import { PaymentState } from 'payment/paymentState';
++import { PaymentState } from '../payment/paymentState';
+ 
+ 
+ /**
+diff --git a/dist/types/utilities/item.d.ts b/dist/types/utilities/item.d.ts
+index 0e7f53247c63d4854be390f6c886b8d0ad713630..3603da666fa8c019121490977f4ae76a6e0f9226 100644
+--- a/dist/types/utilities/item.d.ts
++++ b/dist/types/utilities/item.d.ts
+@@ -1,8 +1,8 @@
+-import { PaymentMethod } from 'payment/paymentMethod';
+-import { PaymentObject } from 'payment/paymentObject';
++import { PaymentMethod } from '../payment/paymentMethod';
++import { PaymentObject } from '../payment/paymentObject';
+ import { Tax } from './tax';
+ import { SupplierInfo } from './supplierInfo';
+-import { AgentData } from 'agent/agentData';
++import { AgentData } from '../agent/agentData';
+ 
+ 
+ /**
+diff --git a/dist/types/utilities/receipt.d.ts b/dist/types/utilities/receipt.d.ts
+index 09878fde34b49802802947e84b03097e654e6d57..5ddcfa9cb145140908c44de98daa3a5df179b812 100644
+--- a/dist/types/utilities/receipt.d.ts
++++ b/dist/types/utilities/receipt.d.ts
+@@ -26,7 +26,7 @@ export interface Receipt {
+     /**
+      * Taxation system
+      */
+-    Taxation: Taxation;
++    Taxation: Taxation[keyof Taxation];
+ 
+     /**
+      * An array of check items with product information

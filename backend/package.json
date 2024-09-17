@@ -11,7 +11,7 @@
   "author": "lightmanLP",
   "license": "",
   "dependencies": {
-    "@exode-team/tinkoff.checkout": "1.0.77",
+    "@exode-team/tinkoff.checkout": "patch:@exode-team/tinkoff.checkout@npm:1.0.77#~/patches/@exode-team-tinkoff.checkout-npm-1.0.77-e7e2de5536.patch",
     "body-parser": "^1.20.2",
     "common": "workspace:^",
     "convict": "^6.2.4",
