@@ -90,15 +90,22 @@ async function inputPhoneNumber(conversation: MyConversation, ctx: MyContext) {
 bot.use(createConversation(inputPhoneNumber));
 
 bot.command("start", async (ctx) => {
-  for await (const session of DBSession.ctx()) {
-    // TODO: maybe reuse accessible cache
-    const clientData = await session.fetchClient(ctx.from.id);
+  let done: boolean;
+  if (config.get("bot.authEnabled")) {
+    for await (const session of DBSession.ctx()) {
+      // TODO: maybe reuse accessible cache
+      const clientData = await session.fetchClient(ctx.from.id);
 
-    if (clientData != null) {
-      await sendAccessibleNotify(ctx.from.id);
-    } else {
-      await ctx.conversation.enter("inputPhoneNumber");
+      done = (clientData != null);
     }
+  } else {
+    done = true;
+  }
+
+  if (done) {
+    await sendAccessibleNotify(ctx.from.id);
+  } else {
+    await ctx.conversation.enter("inputPhoneNumber");
   }
 });
 
