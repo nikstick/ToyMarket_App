@@ -6,7 +6,7 @@
     "backend"
   ],
   "scripts": {
-    "build": "tsc --build",
+    "build": "yarn tsc --build",
     "linking": "yarn workspaces foreach --all link"
   },
   "version": "1.0.0",
