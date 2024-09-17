@@ -60,4 +60,5 @@ class Storage {
 export var storage = new Storage();
 
 ipc.config.id = "backend";
+ipc.config.retry = 2 * 60 * 1000;
 ipc.connectTo("bot");
