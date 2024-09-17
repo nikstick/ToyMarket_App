@@ -9,7 +9,7 @@
     "definition": "index.d.ts"
   },
   "scripts": {
-    "build": "npx tsc --build"
+    "build": "yarn tsc --build"
   },
   "author": "lightmanLP",
   "license": "",
