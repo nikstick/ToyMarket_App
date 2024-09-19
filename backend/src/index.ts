@@ -20,9 +20,19 @@ import { ORDER_PLACEHOLDER, valuesTranslation } from "./structures.js";
 const app = express();
 app.use(
   (err: Error, req: Request, res: Response, next: NextFunction) => {
-    console.error(err);
-    console.error(err.stack);
-    res.status(500).send("Internal Server Error");
+    if (err instanceof TBankBasicValidationError) {
+      console.log(`Tinkoff payment ${err.method} error: ${err.data}`);
+      res.status(500).json(
+        {
+          "error": true,
+          "reason": `payment system failed with code ${err.errorCode}`
+        } as IErrorResponse
+      );
+    } else {
+      console.error(err);
+      console.error(err.stack);
+      res.status(500).send("Internal Server Error");
+    }
     //next(err);
   }
 );
@@ -269,13 +279,37 @@ app.post(
   return res.status(200).json({status: "ok", orderID: orderID});
 });
 
-interface PaymentInitResponse {status: "ok", amount: number, url: string};
+class TBankBasicValidationError extends Error {
+  method: string;
+  errorCode: string;
+  data: object;
+
+  constructor(method: string, errorCode: string, data: object) {
+    super(`${method}: ${errorCode}`);
+    this.method = method;
+    this.errorCode = errorCode;
+    this.data = data;
+  }
+}
+
+interface TBankBasicObj {
+  Success: boolean;
+  ErrorCode?: string;
+}
+type TBankBasic = TBankBasicObj | undefined;
+
+function tbankBasicValidator(method: string, result: TBankBasic): void {
+  assert(typeof result !== "undefined");
+  if(!result.Success) {
+    throw new TBankBasicValidationError(method, result.ErrorCode, result);
+  }
+}
+
+interface PaymentInitResponse {error: boolean, amount: number, url: string, paymentID: number};
 app.post(
-  "/api/pay/init",
+  "/api/payment/tbank/init",
   async (req: Request, res: Response) => {
-    let {
-      orderID
-    } = req.body;
+    let { orderID } = req.body;
     assert(typeof orderID !== "undefined");
 
     const TAX_TRANSLATION = {
@@ -288,7 +322,7 @@ app.post(
       const order = await session.fetchOrder(orderID);
       const items = await session.fetchOrderItems(orderID);
 
-      const data = await tinkoff.initPayment(
+      const result = await tinkoff.initPayment(
         {
           Amount: order[FIELDS.orders.amount] * 100,
           OrderId: orderID,
@@ -312,29 +346,86 @@ app.post(
                 };
               }
             )
-          }
+          },
+          // FIXME
+          NotificationURL: "https://shop-api.toyseller.site" + TBANK_NOTIFICATION_ROUTE
         }
       );
-      assert(typeof data !== "undefined");
-      if(!data.Success) {
-        return res.status(500).json(
-          {
-            "error": true,
-            "reason": `payment system failed with code ${data.ErrorCode}`
-          } as IErrorResponse
-        );
-      }
+      tbankBasicValidator("init", result);
+      // TODO: store paymentID by orderID maybe?
 
       return res.json(
         {
-          status: "ok",
-          amount: data.Amount,
-          url: data.PaymentURL
+          error: false,
+          amount: result.Amount,
+          url: result.PaymentURL,
+          paymentID: result.PaymentId
         } as PaymentInitResponse
       )
     }
   }
+);
+
+app.post(
+  "/api/payment/tbank/cancel",
+  async (req: Request, res: Response) => {
+    const { paymentID } = req.body;
+    const result = await tinkoff.cancelPayment({PaymentId: paymentID});
+    assert(typeof result !== "undefined");
+    tbankBasicValidator("cancel", result);
+    return res.status(200).json({"error": false, orderID: result.OrderId});
+  }
 )
+
+const TBANK_NOTIFICATION_ROUTE = "/hook/payment/tbank/update";
+type TBankPaymentStatus = (
+  "AUTHORIZED"
+  | "CONFIRMED"
+  | "PARTIAL_REVERSED"
+  | "REVERSED"
+  | "PARTIAL_REFUNDED"
+  | "REFUNDED"
+  | "REJECTED"
+  | "DEADLINE_EXPIRED"
+);
+interface TBankNotificationPayment {
+  TerminalKey: string;
+  Amount: number;
+  OrderId: number;
+  Success: boolean;
+  Status: TBankPaymentStatus;
+  PaymentId: number;
+  CardId: number;
+};
+app.post(
+  TBANK_NOTIFICATION_ROUTE,
+  async (req: Request, res: Response) => {
+    const data: TBankNotificationPayment = req.body;
+    assert(typeof data !== "undefined");
+    console.log(`TBank payment ${data.PaymentId}<${data.OrderId}> ${data.Status} (Success: ${data.Success})`);
+
+    for await (const session of DBSession.ctx()) {
+      let status = null;
+      switch (data.Status) {
+        case "CONFIRMED":
+          if (data.Success) { status = VALUES.orders.status.paid; }
+          break;
+        case "REFUNDED":
+        case "PARTIAL_REFUNDED":
+        case "REJECTED":
+        case "REVERSED":
+        case "PARTIAL_REVERSED":
+        case "DEADLINE_EXPIRED":
+          status = VALUES.orders.status.cancelled;
+          break;
+      }
+      if (status != null) {
+        await session.changeOrderStatus(data.OrderId, status);
+      }
+    }
+    return res.status(200).send("OK");
+  }
+);
 
 const server = http.createServer(app);
 {

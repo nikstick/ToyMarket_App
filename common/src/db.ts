@@ -378,4 +378,17 @@ export class DBSession {
     ) as RowDataPacket[][];
     return order;
   }
+
+  public async changeOrderStatus(
+    orderID: number,
+    status: typeof VALUES.orders.status[keyof typeof VALUES.orders.status]
+  ): Promise<void> {
+    await this.conn.query(
+      `UPDATE ${ENTITIES.orders}
+      SET ${FIELDS.orders.status} = ?
+      WHERE id = ?`,
+      [status, orderID]
+    );
+    await this.conn.commit();
+  }
 }
