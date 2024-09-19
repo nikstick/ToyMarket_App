@@ -402,6 +402,9 @@ app.post(
   async (req: Request, res: Response) => {
     const data: TBankNotificationPayment = req.body;
     assert(typeof data !== "undefined");
+    assert(data.TerminalKey == config.get("tinkoff.terminalKey"));
+    // FIXME: check ip addr and crypto
+
     console.log(`TBank payment ${data.PaymentId}<${data.OrderId}> ${data.Status} (Success: ${data.Success})`);
 
     for await (const session of DBSession.ctx()) {
