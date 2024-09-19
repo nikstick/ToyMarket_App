@@ -34,7 +34,7 @@
 
 ## Пример параметров после успешного платежа:
 ```
-https://shop-api.toyseller.site/fake/success
+https://shop.toyseller.site/fake/success
 ?Success=true
 &ErrorCode=0
 &Message=None
