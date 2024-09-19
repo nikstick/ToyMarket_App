@@ -329,7 +329,7 @@ app.post(
           DATA: {
             Email: order[FIELDS.orders.email],
             Phone: order[FIELDS.orders.phoneNumber],
-            DefaultCard: "none"  // TODO: maybe save card
+            //DefaultCard: "none"  // TODO: maybe save card
           },
           Receipt: {
             Email: order[FIELDS.orders.email],
@@ -410,17 +410,19 @@ app.post(
     for await (const session of DBSession.ctx()) {
       let status = null;
       switch (data.Status) {
-        case "CONFIRMED":
+        case "CONFIRMED": {
           if (data.Success) { status = VALUES.orders.status.paid; }
           break;
+        }
         case "REFUNDED":
         case "PARTIAL_REFUNDED":
         case "REJECTED":
         case "REVERSED":
         case "PARTIAL_REVERSED":
-        case "DEADLINE_EXPIRED":
+        case "DEADLINE_EXPIRED": {
           status = VALUES.orders.status.cancelled;
           break;
+        }
       }
       if (status != null) {
         await session.changeOrderStatus(data.OrderId, status);
