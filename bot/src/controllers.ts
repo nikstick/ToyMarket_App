@@ -32,7 +32,12 @@ class Storage {
     }
   }
 
-  @Cache(cacheStorage, {ttl: 300, isLazy: false})
+  @Cache(
+    cacheStorage, {
+      ttl: (config.get("bot.authEnabled") ? 300 : 30),
+      isLazy: false
+    }
+  )
   public async isUnapproved(clientTgID: number): Promise<boolean> {
     for await (const session of DBSession.ctx()) {
       let value = await session.isUnapproved(clientTgID);

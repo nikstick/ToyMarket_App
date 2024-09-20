@@ -44,7 +44,7 @@ async function inputPhoneNumber(conversation: MyConversation, ctx: MyContext) {
     other
   );
 
-  let number: string;
+  let phoneNumber: string;
   while (true) {
     const { message } = await conversation.wait();
     for await (const session of DBSession.ctx()) {
@@ -56,13 +56,13 @@ async function inputPhoneNumber(conversation: MyConversation, ctx: MyContext) {
     }
 
     if (message.contact) {
-      number = message.contact.phone_number;
+      phoneNumber = message.contact.phone_number;
       break;
     } else if (message && message.text && message.text.length <= 20) {
       try {
         let parsedNumber = parsePhoneNumber(message.text);
         if (parsedNumber && parsedNumber.isPossible() && parsedNumber.isValid()) {
-          number = parsedNumber.formatInternational();
+          phoneNumber = parsedNumber.formatInternational();
           break;
         }
       } catch (err) {
@@ -74,32 +74,35 @@ async function inputPhoneNumber(conversation: MyConversation, ctx: MyContext) {
     }
   }
 
-  for await (const session of DBSession.ctx()) {
-    await ctx.api.sendMessage(
-      await storage.getManagerTgID(),
-      await StaticUtils.renderText(
-        "new_user",
-        {user: ctx.from, number: number}
-      )
-    );
-    await session.addToApproveQueue(ctx.from.id);
-    await ctx.reply("Данные успешно отправлены");
+  if (config.get("bot.authEnabled")) {
+    for await (const session of DBSession.ctx()) {
+      await ctx.api.sendMessage(
+        await storage.getManagerTgID(),
+        await StaticUtils.renderText(
+          "new_user",
+          {user: ctx.from, number: phoneNumber}
+        )
+      );
+      await session.addToApproveQueue(ctx.from.id);
+    }
+  } else {
+    // TODO: MAKE IT
   }
+
+  await ctx.reply("Данные успешно отправлены");
 }
 
 bot.use(createConversation(inputPhoneNumber));
 
 bot.command("start", async (ctx) => {
   let done: boolean;
-  if (config.get("bot.authEnabled")) {
+  {
     for await (const session of DBSession.ctx()) {
       // TODO: maybe reuse accessible cache
       const clientData = await session.fetchClient(ctx.from.id);
 
       done = (clientData != null);
     }
-  } else {
-    done = true;
   }
 
   if (done) {
