@@ -166,18 +166,22 @@ export async function sendAccessibleNotify(clientTgID: number): Promise<void> {
 }
 
 export async function sendNewOrder(data: NewOrder) {
-  const inlineKeyboard = new InlineKeyboard().webApp(
-    "Заказать еще",
-    config.get("bot.webAppURL")
-  );
-  await bot.api.sendMessage(
-    data.client.tgID,
-    await StaticUtils.renderText("new_order", data, false),
-    {
-      parse_mode: "HTML",
-      reply_markup: inlineKeyboard,
-    }
-  );
+  try {
+    const inlineKeyboard = new InlineKeyboard().webApp(
+      "Заказать еще",
+      config.get("bot.webAppURL")
+    );
+    await bot.api.sendMessage(
+      data.client.tgID,
+      await StaticUtils.renderText("new_order", data, false),
+      {
+        parse_mode: "HTML",
+        reply_markup: inlineKeyboard,
+      }
+    );
+  } catch (exc) {
+    console.error(exc);
+  }
 }
 
 bot.use(
