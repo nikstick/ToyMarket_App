@@ -12,7 +12,7 @@ axiosRetry(
     retries: 5,
     retryDelay: axiosRetry.linearDelay(),
     retryCondition: (err: AxiosError) => {
-      return (err.response.status >= 400);
+      return (!err.response.status || err.response.status >= 400);
     }
   }
 );
