@@ -1,9 +1,21 @@
 import type { Writable } from "node:stream";
 
-import axios from "axios";
+import axios, { AxiosError, type AxiosResponse } from "axios";
+import axiosRetry from "axios-retry";
 import type { Config } from "convict";
 
 import { ENTITIES_RAW, SprutonItem } from "./structures.js";
+import { assert } from "node:console";
+
+axiosRetry(
+  axios, {
+    retries: 5,
+    retryDelay: axiosRetry.linearDelay(),
+    retryCondition: (err: AxiosError) => {
+      return (err.response.status >= 400);
+    }
+  }
+);
 
 interface SprutonConfigSchema {
   spruton: {
@@ -40,6 +52,7 @@ export class Spruton<ConfigSchemaT extends SprutonConfigSchema> {
       },
       {headers: {"Content-Type": "multipart/form-data"}}
     );
+    assert(fetchResp.status == 200);
     return Object.fromEntries(
       fetchResp.data["data"].map(
         x => [x.id, x]
@@ -88,7 +101,13 @@ export class Spruton<ConfigSchemaT extends SprutonConfigSchema> {
         },
         responseType: "stream"
       }
-    ).then((response) => { response.data.pipe(buf); });
+    ).then(
+      (response: AxiosResponse) => {
+        if (response.status == 200) {
+          response.data.pipe(buf);
+        }
+      }
+    );
   }
 
   public downloadAttachment(
@@ -110,6 +129,12 @@ export class Spruton<ConfigSchemaT extends SprutonConfigSchema> {
         },
         responseType: "stream"
       }
-    ).then((response) => { response.data.pipe(buf); });
+    ).then(
+      (response: AxiosResponse) => {
+        if (response.status == 200) {
+          response.data.pipe(buf);
+        }
+      }
+    );
   }
 }
