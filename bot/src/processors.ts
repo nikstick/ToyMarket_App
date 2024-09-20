@@ -68,3 +68,4 @@ ipc.serve(
     )
   }
 );
+ipc.server.start();
