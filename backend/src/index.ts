@@ -324,7 +324,10 @@ app.post(
 
       const result = await tinkoff.initPayment(
         {
-          Amount: items.reduce((x, item) => x + Number(item[FIELDS.orderItems.amount]), 0) * 100,
+          Amount: items.reduce(
+            (x, item) => x + Number(item[FIELDS.orderItems.price]) * Number(item[FIELDS.orderItems.quantity]) * 100,
+            0
+          ) * 100,
           OrderId: orderID,
           DATA: {
             Email: order[FIELDS.orders.email],
@@ -341,7 +344,7 @@ app.post(
                   Name: item[FIELDS.orderItems.article],
                   Price: Number(item[FIELDS.orderItems.price]) * 100,
                   Quantity: Number(item[FIELDS.orderItems.quantity]),
-                  Amount: Number(item[FIELDS.orderItems.amount]) * 100,
+                  Amount: Number(item[FIELDS.orderItems.price]) * Number(item[FIELDS.orderItems.quantity]) * 100,
                   Tax: TAX_TRANSLATION[item[FIELDS.orderItems.tax]]
                 };
               }
