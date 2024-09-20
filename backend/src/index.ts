@@ -1,6 +1,7 @@
 import http from "node:http";
 
 import express, { type Request, type Response, type NextFunction } from "express";
+import {} from "express-async-errors";
 import cors from "cors";
 import bodyParser from "body-parser";
 import type { RowDataPacket } from "mysql2/promise";
@@ -17,16 +18,17 @@ import { uselessFront } from "./utils.js";
 import { ORDER_PLACEHOLDER, valuesTranslation } from "./structures.js";
 
 const app = express();
-app.use(cors());
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({extended: true}));
 app.use(
   (err: Error, req: Request, res: Response, next: NextFunction) => {
     console.error(err);
     console.error(err.stack);
     res.status(500).send("Internal Server Error");
+    //next(err);
   }
 );
+app.use(cors());
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({extended: true}));
 
 interface RequestContext {
   isTg: boolean;
@@ -112,7 +114,7 @@ app.get(
     let client, ordersView;
     for await (const session of DBSession.ctx()) {
       if (req.ctx.isTg) {
-        const { tgID } = req.query;
+        const tgID = req.query.userId;
         client = await session.fetchClient(Number(tgID));
       } else {
         client = req.ctx.client;
@@ -195,14 +197,14 @@ app.post(
       return res.status(400).json({error: "Bad Request"});
     }
 
-    let orderID, items, client;
+    let client;
     for await (const session of DBSession.ctx()) {
       if (req.ctx.isTg) {
-        client = session.fetchClient(req.body.userId);
+        client = await session.fetchClient(req.body.userId);
       } else {
         client = req.ctx.client;
-        assert(client != null);
       }
+      assert(client != null);
 
       let personalDiscount: number;
       {
@@ -213,7 +215,7 @@ app.post(
           personalDiscount = Number(personalDiscountSrc);
         }
       }
-      let {orderID, items} = await session.createOrder(
+      var {orderID, items} = await session.createOrder(
         ORDER_PLACEHOLDER,
         client.id,
         phone,

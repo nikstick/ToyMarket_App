@@ -183,8 +183,8 @@ export class DBSession {
         product.${aliasedAs(FIELDS.products.keywords)},
         product.${aliasedAs(FIELDS.products.otherPhotos)}
       FROM ${ENTITIES.orderItems} as item
-      WHERE item.parent_item_id = ?
-      JOIN ${ENTITIES.products} AS product ON item.productID = product.id`,
+      JOIN ${ENTITIES.products} AS product ON item.${FIELDS.orderItems.product} = product.id
+      WHERE item.parent_item_id = ?`,
       [orderID]
     ) as RowDataPacket[][];
     return orderItems.map(
@@ -238,7 +238,6 @@ export class DBSession {
         Date.now() / 1000,
         Date.now() / 1000,
         1,
-        0,
         title,
         clientID,
         phoneNumber,
@@ -320,11 +319,11 @@ export class DBSession {
         fetchedProducts.map(
           ([product, data], i) => {
             let itemID = insertOrderItemsResult[i];
-            [
+            return [
               [itemID, FIELDS_RAW.orderItems.product, product.id],
               [itemID, FIELDS_RAW.orderItems.category, product[FIELDS.products.category]],
               [itemID, FIELDS_RAW.orderItems.tax, product[FIELDS.products.tax]]
-            ]
+            ];
           }
         ).flat(1)
       ]
