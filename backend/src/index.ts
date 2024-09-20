@@ -322,12 +322,20 @@ app.post(
       const order = await session.fetchOrder(orderID);
       const items = await session.fetchOrderItems(orderID);
 
+      const receiptItems = items.map(
+        (item) => {
+          return {
+            Name: item[FIELDS.orderItems.article],
+            Price: Number(item[FIELDS.orderItems.price]) * 100,
+            Quantity: Number(item[FIELDS.orderItems.quantity]),
+            Amount: Number(item[FIELDS.orderItems.price]) * Number(item[FIELDS.orderItems.quantity]) * 100,
+            Tax: TAX_TRANSLATION[item[FIELDS.orderItems.tax]]
+          };
+        }
+      )
       const result = await tinkoff.initPayment(
         {
-          Amount: items.reduce(
-            (x, item) => x + Number(item[FIELDS.orderItems.price]) * Number(item[FIELDS.orderItems.quantity]) * 100,
-            0
-          ) * 100,
+          Amount: receiptItems.reduce((x, item) => x + item.Amount, 0),
           OrderId: orderID,
           DATA: {
             Email: order[FIELDS.orders.email],
@@ -338,17 +346,7 @@ app.post(
             Email: order[FIELDS.orders.email],
             Phone: order[FIELDS.orders.phoneNumber],
             Taxation: "osn",
-            Items: items.map(
-              (item) => {
-                return {
-                  Name: item[FIELDS.orderItems.article],
-                  Price: Number(item[FIELDS.orderItems.price]) * 100,
-                  Quantity: Number(item[FIELDS.orderItems.quantity]),
-                  Amount: Number(item[FIELDS.orderItems.price]) * Number(item[FIELDS.orderItems.quantity]) * 100,
-                  Tax: TAX_TRANSLATION[item[FIELDS.orderItems.tax]]
-                };
-              }
-            )
+            Items: receiptItems
           },
           // FIXME
           NotificationURL: "https://shop-api.toyseller.site" + TBANK_NOTIFICATION_ROUTE
