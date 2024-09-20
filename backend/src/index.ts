@@ -241,7 +241,7 @@ app.post(
           (product) => {
             // FIXME: funny and woozy
             let { id, quantity, inBox } = product;
-            quantity = Math.ceil(quantity * inBox);
+            quantity = Math.ceil(Number(quantity) * inBox);
             return [id, {quantity: quantity}];
           }
         ))
@@ -324,7 +324,7 @@ app.post(
 
       const result = await tinkoff.initPayment(
         {
-          Amount: items.reduce((x, item) => x + (item[FIELDS.orderItems.amount]), 0) * 100,
+          Amount: items.reduce((x, item) => x + Number(item[FIELDS.orderItems.amount]), 0) * 100,
           OrderId: orderID,
           DATA: {
             Email: order[FIELDS.orders.email],
@@ -339,9 +339,9 @@ app.post(
               (item) => {
                 return {
                   Name: item[FIELDS.orderItems.article],
-                  Price: item[FIELDS.orderItems.price] * 100,
-                  Quantity: item[FIELDS.orderItems.quantity],
-                  Amount: item[FIELDS.orderItems.amount] * 100,
+                  Price: Number(item[FIELDS.orderItems.price]) * 100,
+                  Quantity: Number(item[FIELDS.orderItems.quantity]),
+                  Amount: Number(item[FIELDS.orderItems.amount]) * 100,
                   Tax: TAX_TRANSLATION[item[FIELDS.orderItems.tax]]
                 };
               }
