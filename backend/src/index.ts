@@ -236,6 +236,7 @@ app.post(
           }
         ))
       );
+      await spruton.touch(ENTITIES_RAW.orders, orderID);
 
       await session.updateClientData(
         client.id,

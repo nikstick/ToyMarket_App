@@ -47,6 +47,25 @@ export class Spruton<ConfigSchemaT extends SprutonConfigSchema> {
     );
   }
 
+  public async touch(
+    entityID: typeof ENTITIES_RAW[keyof typeof ENTITIES_RAW],
+    entryID: number
+  ): Promise<void> {
+    await axios.post(
+      `${this.config.get("spruton.url")}/api/rest.php`,
+      {
+        username: this.config.get("spruton.username"),
+        password: this.config.get("spruton.password"),
+        key: this.config.get("spruton.apiKey"),
+        action: "update",
+        entity_id: entityID,
+        "update_by_field[id]": entryID,
+        data: ""
+      },
+      {headers: {"Content-Type": "multipart/form-data"}}
+    );
+  }
+
   public imageURL(item: SprutonItem, field: number): string {
     return `${this.config.get("spruton.url")}/${item[field]}`;
   }
