@@ -1,7 +1,7 @@
 import http from "node:http";
 
 import express, { type Request, type Response, type NextFunction } from "express";
-import {} from "express-async-errors";
+import "express-async-errors";
 import cors from "cors";
 import bodyParser from "body-parser";
 import type { RowDataPacket } from "mysql2/promise";

@@ -63,8 +63,8 @@ export class Spruton<ConfigSchemaT extends SprutonConfigSchema> {
   public async touch(
     entityID: typeof ENTITIES_RAW[keyof typeof ENTITIES_RAW],
     entryID: number
-  ): Promise<void> {
-    await axios.post(
+  ): Promise<boolean> {
+    let result = await axios.post(
       `${this.config.get("spruton.url")}/api/rest.php`,
       {
         username: this.config.get("spruton.username"),
@@ -77,6 +77,7 @@ export class Spruton<ConfigSchemaT extends SprutonConfigSchema> {
       },
       {headers: {"Content-Type": "multipart/form-data"}}
     );
+    return (result.data.status == "success");
   }
 
   public imageURL(item: SprutonItem, field: number): string {
