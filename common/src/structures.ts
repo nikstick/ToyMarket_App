@@ -24,6 +24,7 @@ export const FIELDS_RAW = {
     status: 273,
     inn: 276,
     tgID: 281,
+    tgNick: 303,
     personalDiscount: 338,
   },
   news: {

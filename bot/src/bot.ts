@@ -9,11 +9,13 @@ import {
 import { type PhoneNumber, parsePhoneNumber, ParseError } from "libphonenumber-js";
 
 import type { NewOrder } from "common/dist/ipc.js";
+import { ENTITIES_RAW, VALUES } from "common/dist/structures.js";
 
 import { config } from "./config.js";
 import { StaticUtils } from "./utils.js";
-import { storage } from "./controllers.js";
+import { spruton, storage } from "./controllers.js";
 import { DBSession } from "./db.js";
+import { randomUUID } from "crypto";
 
 type MyContext = Context & ConversationFlavor;
 type MyConversation = Conversation<MyContext>;
@@ -86,10 +88,31 @@ async function inputPhoneNumber(conversation: MyConversation, ctx: MyContext) {
       await session.addToApproveQueue(ctx.from.id);
     }
   } else {
-    // TODO: MAKE IT
+    for await (const session of DBSession.ctx()) {
+      let clientID = await session.createClient(
+        {
+          fullName: `${ctx.from.first_name} ${ctx.from.last_name} (@${ctx.from.username})`,
+          tgNick: ctx.from.username,
+          tgID: ctx.from.id,
+          ruPhoneNumber: phoneNumber,
+          status: VALUES.clients.status.active,
+          email: "",
+          address: "",
+          companyName: "",
+          password: randomUUID(),
+          inn: "",
+          personalDiscount: 0
+        }
+      );
+      await spruton.touch(ENTITIES_RAW.clients, clientID);
+    }
   }
 
-  await ctx.reply("Данные успешно отправлены");
+  if (config.get("bot.authEnabled")) {
+    await ctx.reply("Данные успешно отправлены");
+  } else {
+    await sendAccessibleNotify(ctx.from.id);
+  }
 }
 
 bot.use(createConversation(inputPhoneNumber));

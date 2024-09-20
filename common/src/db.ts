@@ -391,4 +391,35 @@ export class DBSession {
     );
     await this.conn.commit();
   }
+
+  public async createClient(data: {[k in keyof typeof FIELDS.clients]: string | number}): Promise<number> {
+    const [insertResult] = await this.conn.query(
+      `INSERT INTO ${ENTITIES.clients} (
+        ${FIELDS.clients.fullName},
+        ${FIELDS.clients.ruPhoneNumber},
+        ${FIELDS.clients.email},
+        ${FIELDS.clients.companyName},
+        ${FIELDS.clients.status},
+        ${FIELDS.clients.inn},
+        ${FIELDS.clients.tgID},
+        ${FIELDS.clients.personalDiscount},
+        ${FIELDS.clients.tgNick}
+      ) VALUES ?`,
+      [[
+        [
+          data.fullName,
+          data.ruPhoneNumber,
+          data.email,
+          data.companyName,
+          data.status,
+          data.inn,
+          data.tgID,
+          data.personalDiscount,
+          data.tgNick
+        ]
+      ]]
+    ) as ResultSetHeader[];
+    await this.conn.commit();
+    return insertResult.insertId;
+  }
 }
