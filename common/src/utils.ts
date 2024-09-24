@@ -13,14 +13,22 @@ export function mapObj<T, R>(
   );
 }
 
+type ErrorType = new (message?: string) => Error;
+
 export class AssertionError extends Error {}
 
-export function assert(expr: true, error?: string): void;
-export function assert(expr: false, error?: string): never;
-export function assert(expr: boolean, error?: string): void;
-export function assert(expr: boolean, error?: string): void {
+export function assert(expr: true, error?: string | Error | ErrorType): void;
+export function assert(expr: false, error?: string | Error | ErrorType): never;
+export function assert(expr: boolean, error?: string | Error | ErrorType): void;
+export function assert(expr: boolean, error?: string | Error | ErrorType): void {
   if (!expr) {
-    throw new AssertionError(error);
+    if (Error.isPrototypeOf(error)) {
+      throw new (error as ErrorType)();
+    } else if (error instanceof Error) {
+      throw error;
+    } else {
+      throw new AssertionError(error as (string | undefined));
+    }
   }
 }
 
@@ -56,3 +64,5 @@ export class IgnorableCacheContainer extends CacheContainer {
     }
   }
 }
+
+export class Elevate extends Error {}
