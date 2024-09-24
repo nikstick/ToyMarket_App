@@ -1,4 +1,5 @@
 import http from "node:http";
+import { createHmac, createHash } from "node:crypto";
 
 import express, { type Request, type Response, type NextFunction } from "express";
 import "express-async-errors";
@@ -8,7 +9,7 @@ import type { RowDataPacket } from "mysql2/promise";
 import ipc from "node-ipc";
 
 import { ENTITIES, ENTITIES_RAW, FIELDS, FIELDS_RAW, VALUES } from "common/dist/structures.js";
-import { assert } from "common/dist/utils.js";
+import { assert, Elevate } from "common/dist/utils.js";
 import type { NewOrder } from "common/dist/ipc.js";
 
 import { config } from "./config.js";
@@ -40,17 +41,29 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: true}));
 
-interface RequestContext {
-  isTg: boolean;
-  email?: string;
-  password?: string;
-  client?: RowDataPacket;
+interface TgUserObject {
+  id: number;
+  first_name: string;
+  last_name: string | null;
+  username: string | null;
+  photo_url: string | null;
 }
+
+type RequestContext = {
+  isTg: true;
+  tgUser: TgUserObject;
+  client: RowDataPacket;
+} | {
+  isTg: false;
+  email: string;
+  password: string;
+  client: RowDataPacket;
+};
 
 declare global {
   namespace Express {
     interface Request {
-      ctx: RequestContext
+      ctx: RequestContext;
     }
   }
 }
@@ -58,36 +71,110 @@ declare global {
 interface IErrorResponse {error: true, reason?: string};
 type ErrorResponse = IErrorResponse | undefined;
 
-app.use(
-  async (req: Request, res: Response, next: NextFunction) => {
-    req.ctx = {
-      isTg: true
-    };
+class BadAuth extends Error {};
 
-    // TODO: require "tg" in auth header
-    if (!req.headers["authorization"]) {
-      next();
-      return;
-    }
+function checkAuth(secret: string, data: {hash: string}): boolean {
+  const { hash, ...filtered } = data;
+  let encodedData = (
+    Object.entries(filtered)
+    .sort(([ak, av], [bk, bv]) => ak.localeCompare(bk))
+    .map(([k, v]) => `${k}=${(typeof v === "string" || v instanceof String) ? v : JSON.stringify(v)}`)
+    .join("\n")
+  );
+  return (createHmac("sha256", secret).update(encodedData).digest("hex") == hash);
+}
 
-    // FIXME: CONTAINS PASSWORD? WHY?
-    const [email, password] = req.headers["authorization"].split("_-_");
-    for await (const session of DBSession.ctx()) {
-      let client = await session.fetchAuthClient(email, password);
-      if (client != null) {
-        req.ctx = {
-          isTg: false,
-          email: email,
-          password: password,
-          client: client
-        };
-        next();
-      } else {
-        return res.json({error: true} as IErrorResponse);
-      }
+function validateTgUserObject(obj: Partial<TgUserObject>): TgUserObject {
+  let names: string[] = ["last_name", "username", "photo_url"] as (keyof TgUserObject)[];
+  for (let name of names) {
+    if (typeof obj[name] === "undefined") {
+      obj[name] = null;
     }
   }
+  return obj as TgUserObject;
+}
+
+app.use(
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      var ctx: RequestContext;
+
+      assert(req.method != "GET", Elevate);
+      const auth = req.headers["authorization"];
+      assert(typeof auth !== "undefined", BadAuth);
+
+      if (["MiniApp", "WebApp"].includes(auth)) {
+        assert(typeof req.body !== "undefined", BadAuth);
+        assert(typeof req.body.tgUserData !== "undefined", BadAuth);
+        const tgData = req.body.tgUserData;
+
+        let user: TgUserObject;
+        switch (auth) {
+          case "MiniApp": {
+            assert(
+              checkAuth(
+                createHash("sha256").update(config.get("bot.token")).digest("hex"),
+                tgData
+              ), BadAuth
+            );
+            assert(typeof tgData.user !== "undefined", BadAuth);
+            user = tgData.user;
+            break;
+          }
+          case "WebApp": {
+            assert(
+              checkAuth(
+                createHmac("sha256", "WebAppData").update(config.get("bot.token")).digest("hex"),
+                tgData
+              ), BadAuth
+            );
+            user = tgData;
+            break;
+          }
+        }
+        validateTgUserObject(user);
+        
+        for await (const session of DBSession.ctx()) {
+          let client = await session.fetchClient(user.id);
+          assert(client != null, BadAuth);
+          ctx = {isTg: true, tgUser: user, client: client};
+        }
+      } else if (auth.includes("_-_")) {
+        // FIXME: CONTAINS PASSWORD? WHY?
+        const [email, password] = auth.split("_-_");
+        for await (const session of DBSession.ctx()) {
+          let client = await session.fetchAuthClient(email, password);
+          assert(client != null, BadAuth);
+          ctx = {
+            isTg: false,
+            email: email,
+            password: password,
+            client: client
+          };
+        }
+      } else {
+        throw new BadAuth();
+      }
+    } catch(exc) {
+      if (exc instanceof Elevate) {
+        return next();
+      } else if (exc instanceof BadAuth) {
+        return res.status(401);
+      } else {
+        return next(exc);
+      }
+    }
+    req.ctx = ctx;
+    next();
+  }
 );
+
+app.post(
+  "/api/auth/verify",
+  async (req: Request, res: Response) => {
+    return res.json({verified: true, isTg: req.ctx.isTg});
+  }
+)
 
 async function productImage(req: Request, res: Response) {
   const { id, file } = req.params;
@@ -118,22 +205,14 @@ app.get(
   }
 );
 
-app.get(
-  "/api/user",
+app.post(
+  "/api/user/get",
   async (req: Request, res: Response) => {
-    let client, ordersView;
+    let client = req.ctx.client;
     for await (const session of DBSession.ctx()) {
-      if (req.ctx.isTg) {
-        const tgID = req.query.userId;
-        client = await session.fetchClient(Number(tgID));
-      } else {
-        client = req.ctx.client;
-      }
-      assert(client != null);
-
       let orders = await session.fetchClientOrders(client.id);
 
-      ordersView = [];
+      var ordersView = [];
       for (const order of orders) {
         const orderItems = await session.fetchOrderItemsView(order.id);
         orderItems.forEach(uselessFront.product);
@@ -207,15 +286,8 @@ app.post(
       return res.status(400).json({error: "Bad Request"});
     }
 
-    let client;
+    let client = req.ctx.client;
     for await (const session of DBSession.ctx()) {
-      if (req.ctx.isTg) {
-        client = await session.fetchClient(req.body.userId);
-      } else {
-        client = req.ctx.client;
-      }
-      assert(client != null);
-
       let personalDiscount: number;
       {
         let personalDiscountSrc = client[FIELDS.clients.personalDiscount];

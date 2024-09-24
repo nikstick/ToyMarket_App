@@ -16,6 +16,12 @@ export var config = convict({
       default: 8000
     }
   },
+  bot: {
+    token: {format: String, default: EMPTY_S},
+    retryDelay: {format: "int", default: 120},
+    webAppURL: {format: "url", default: EMPTY_S},
+    authEnabled: {format: Boolean, default: true}
+  },
   db: {
     host: {format: "url", default: EMPTY_S},
     database: {format: String, default: EMPTY_S},
