@@ -108,7 +108,7 @@ export class Spruton<ConfigSchemaT extends SprutonConfigSchema> {
           response.data.pipe(buf);
         }
       }
-    );
+    ).catch((reason) => console.error(`Spruton request error: ${reason}`));
   }
 
   public downloadAttachment(
@@ -136,6 +136,6 @@ export class Spruton<ConfigSchemaT extends SprutonConfigSchema> {
           response.data.pipe(buf);
         }
       }
-    );
+    ).catch((reason) => console.error(`Spruton request error: ${reason}`));
   }
 }
