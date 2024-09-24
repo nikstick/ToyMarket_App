@@ -28,7 +28,7 @@ async function performBroadcast() {
           const userTgID = user[FIELDS.clients.tgID];
           try {
             if (newsImg) {
-              await bot.api.sendPhoto(userTgID, newsImg, {caption: `${newsText}`});
+              await bot.api.sendPhoto(userTgID, newsImg, {caption: `${newsText}`, parse_mode: "HTML"});
             } else {
               await bot.api.sendMessage(userTgID, newsText)
             }
