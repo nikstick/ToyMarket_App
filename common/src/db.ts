@@ -75,7 +75,7 @@ export class DBSession {
     }
   }
 
-  public async fetchClient(clientTgID: number): Promise<{[key: string]: any} | null> {
+  public async fetchClient(clientTgID: number): Promise<RowDataPacket | null> {
     const [rows] = await this.conn.execute(
       `SELECT * FROM ${ENTITIES.clients} WHERE ${FIELDS.clients.tgID} = ?`,
       [clientTgID]
