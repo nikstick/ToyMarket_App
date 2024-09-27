@@ -2,8 +2,8 @@ import type { RowDataPacket } from "mysql2/promise";
 
 import { ENTITIES, FIELDS } from "common/dist/structures.js";
 import { PoolManager, DBSession as DBSessionOrigin } from "common/dist/db.js";
+import { config } from "common/dist/config.js";
 
-import { config } from "./config.js";
 import { ORDER_PLACEHOLDER } from "./structures.js";
 
 export enum NotificationType {

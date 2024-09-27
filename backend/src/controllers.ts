@@ -4,8 +4,8 @@ import ipc from "node-ipc";
 import { TinkoffCheckout } from "@exode-team/tinkoff.checkout";
 
 import { Spruton } from "common/dist/controllers.js";
+import { config } from "common/dist/config.js";
 
-import { config } from "./config.js";
 import { DBSession } from "./db.js";
 import { cacheStorage, uselessFront } from "./utils.js";
 

@@ -1,9 +1,9 @@
 import { Cache } from "node-ts-cache";
 
 import { Spruton } from "common/dist/controllers.js";
+import { config } from "common/dist/config.js";
 
 import { cacheStorage } from "./utils.js";
-import { config } from "./config.js";
 import { DBSession, NotificationType } from "./db.js";
 
 export var spruton = new Spruton(config);

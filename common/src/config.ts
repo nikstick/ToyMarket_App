@@ -6,11 +6,25 @@ const EMPTY_S = null as string;
 const EMPTY_N = null as number;
 
 convict.addFormat(url);
+convict.addFormat(
+  {
+    name: "cleanURL",
+    coerce: (v) => {
+      let r: string = url.coerce(v);
+      if (r.at(-1) == "/") {
+        r = r.substring(0, -1);
+      }
+      return r;
+    },
+    validate: url.validate
+  }
+);
 convict.addFormat(ipaddress);
 convict.addParser({extension: ["yml", "yaml"], parse: yaml.load});
 
 export var config = convict({
   web: {
+    apiURL: {format: "cleanURL", default: EMPTY_S},
     port: {
       format: "int",
       default: 8000
@@ -19,11 +33,11 @@ export var config = convict({
   bot: {
     token: {format: String, default: EMPTY_S},
     retryDelay: {format: "int", default: 120},
-    webAppURL: {format: "url", default: EMPTY_S},
+    webAppURL: {format: "cleanURL", default: EMPTY_S},
     authEnabled: {format: Boolean, default: true}
   },
   db: {
-    host: {format: "url", default: EMPTY_S},
+    host: {format: "cleanURL", default: EMPTY_S},
     database: {format: String, default: EMPTY_S},
     user: {
       format: String,
@@ -56,7 +70,8 @@ export var config = convict({
       format: String,
       sensitive: true,
       default: EMPTY_S
-    }
+    },
+    managerID: {format: "int", default: EMPTY_N}
   },
   tinkoff: {
     terminalKey: {

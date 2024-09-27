@@ -3,8 +3,7 @@ import type { RowDataPacket } from "mysql2/promise";
 import { ENTITIES, FIELDS, VALUES } from "common/dist/structures.js";
 import { PoolManager, DBSession as DBSessionOrigin } from "common/dist/db.js";
 import { assert } from "common/dist/utils.js";
-
-import { config } from "./config.js";
+import { config } from "common/dist/config.js";
 
 export enum NotificationType {
   ACCESSIBLE = "accessible",

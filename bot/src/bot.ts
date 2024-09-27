@@ -10,8 +10,8 @@ import { type PhoneNumber, parsePhoneNumber, ParseError } from "libphonenumber-j
 
 import type { NewOrder } from "common/dist/ipc.js";
 import { ENTITIES_RAW, VALUES } from "common/dist/structures.js";
+import { config } from "common/dist/config.js";
 
-import { config } from "./config.js";
 import { StaticUtils } from "./utils.js";
 import { spruton, storage } from "./controllers.js";
 import { DBSession } from "./db.js";

@@ -11,12 +11,46 @@ import ipc from "node-ipc";
 import { ENTITIES, ENTITIES_RAW, FIELDS, FIELDS_RAW, VALUES } from "common/dist/structures.js";
 import { assert, Elevate } from "common/dist/utils.js";
 import type { NewOrder } from "common/dist/ipc.js";
+import { config } from "common/dist/config.js";
 
-import { config } from "./config.js";
 import { spruton, storage, tinkoff } from "./controllers.js";
 import { DBSession } from "./db.js";
 import { uselessFront } from "./utils.js";
 import { ORDER_PLACEHOLDER, valuesTranslation } from "./structures.js";
+
+interface TgUserObject {
+  id: number;
+  first_name: string;
+  last_name: string | null;
+  username: string | null;
+  photo_url: string | null;
+}
+
+type RequestContext = {
+  client: RowDataPacket;
+} & (
+  {
+    isTg: true;
+    isMiniApp: boolean;
+    tgUser: TgUserObject;
+  } | {
+    isTg: false;
+    isMiniApp: false;
+    email: string;
+    password: string;
+  }
+);
+
+declare global {
+  namespace Express {
+    interface Request {
+      ctx: RequestContext;
+    }
+  }
+}
+
+interface IErrorResponse {error: true, reason?: string};
+type ErrorResponse = IErrorResponse | undefined;
 
 const app = express();
 app.use(
@@ -37,39 +71,14 @@ app.use(
     //next(err);
   }
 );
+app.use(
+  async (req: Request, res: Response, next: NextFunction) => {
+    req.path
+  }
+);
 app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: true}));
-
-interface TgUserObject {
-  id: number;
-  first_name: string;
-  last_name: string | null;
-  username: string | null;
-  photo_url: string | null;
-}
-
-type RequestContext = {
-  isTg: true;
-  tgUser: TgUserObject;
-  client: RowDataPacket;
-} | {
-  isTg: false;
-  email: string;
-  password: string;
-  client: RowDataPacket;
-};
-
-declare global {
-  namespace Express {
-    interface Request {
-      ctx: RequestContext;
-    }
-  }
-}
-
-interface IErrorResponse {error: true, reason?: string};
-type ErrorResponse = IErrorResponse | undefined;
 
 class BadAuth extends Error {};
 
@@ -109,6 +118,7 @@ app.use(
         const tgData = req.body.tgUserData;
 
         let user: TgUserObject;
+        let isMiniApp: boolean = false;
         switch (auth) {
           case "MiniApp": {
             assert(
@@ -119,6 +129,7 @@ app.use(
             );
             assert(typeof tgData.user !== "undefined", BadAuth);
             user = tgData.user;
+            isMiniApp = true;
             break;
           }
           case "WebApp": {
@@ -137,7 +148,7 @@ app.use(
         for await (const session of DBSession.ctx()) {
           let client = await session.fetchClient(user.id);
           assert(client != null, BadAuth);
-          ctx = {isTg: true, tgUser: user, client: client};
+          ctx = {isTg: true, isMiniApp: isMiniApp, tgUser: user, client: client};
         }
       } else if (auth.includes("_-_")) {
         // FIXME: CONTAINS PASSWORD? WHY?
@@ -147,6 +158,7 @@ app.use(
           assert(client != null, BadAuth);
           ctx = {
             isTg: false,
+            isMiniApp: false,
             email: email,
             password: password,
             client: client
@@ -172,7 +184,7 @@ app.use(
 app.post(
   "/api/auth/verify",
   async (req: Request, res: Response) => {
-    return res.json({verified: true, isTg: req.ctx.isTg});
+    return res.json({verified: true, isTg: req.ctx.isTg, isMiniApp: req.ctx.isMiniApp});
   }
 )
 
@@ -404,7 +416,9 @@ app.post(
             Tax: TAX_TRANSLATION[item[FIELDS.orderItems.tax]]
           };
         }
-      )
+      );
+      const SUCCESS_ROUTE = "/hook/payment/success";
+      const FAIL_ROUTE = "/hook/payment/fail";
       const result = await tinkoff.initPayment(
         {
           Amount: receiptItems.reduce((x, item) => x + item.Amount, 0),
@@ -420,8 +434,9 @@ app.post(
             Taxation: "osn",
             Items: receiptItems
           },
-          // FIXME
-          NotificationURL: "https://shop-api.toyseller.site" + TBANK_NOTIFICATION_ROUTE
+          NotificationURL: config.get("web.apiURL") + TBANK_NOTIFICATION_ROUTE,
+          SuccessURL: (req.ctx.isMiniApp ? config.get("bot.webAppURL") + SUCCESS_ROUTE : undefined),
+          FailURL: (req.ctx.isMiniApp ? config.get("bot.webAppURL") + FAIL_ROUTE : undefined)
         }
       );
       tbankBasicValidator("init", result);
