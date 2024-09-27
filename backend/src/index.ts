@@ -73,7 +73,7 @@ type ErrorResponse = IErrorResponse | undefined;
 
 class BadAuth extends Error {};
 
-function checkAuth(secret: string, data: {hash: string}): boolean {
+function checkAuth(secret: Buffer | string, data: {hash: string}): boolean {
   const { hash, ...filtered } = data;
   let encodedData = (
     Object.entries(filtered)
@@ -113,7 +113,7 @@ app.use(
           case "MiniApp": {
             assert(
               checkAuth(
-                createHash("sha256").update(config.get("bot.token")).digest("hex"),
+                createHmac("sha256", "WebAppData").update(config.get("bot.token")).digest(),
                 tgData
               ), BadAuth
             );
@@ -124,7 +124,7 @@ app.use(
           case "WebApp": {
             assert(
               checkAuth(
-                createHmac("sha256", "WebAppData").update(config.get("bot.token")).digest("hex"),
+                createHash("sha256").update(config.get("bot.token")).digest(),
                 tgData
               ), BadAuth
             );
@@ -159,7 +159,7 @@ app.use(
       if (exc instanceof Elevate) {
         return next();
       } else if (exc instanceof BadAuth) {
-        return res.status(401);
+        return res.status(401).send("Auth error");
       } else {
         return next(exc);
       }
