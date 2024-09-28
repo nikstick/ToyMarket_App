@@ -68,7 +68,7 @@ app.use(
       console.error(err.stack);
       res.status(500).send("Internal Server Error");
     }
-    //next(err);
+    //return next(err);
   }
 );
 app.use(
@@ -177,7 +177,7 @@ app.use(
       }
     }
     req.ctx = ctx;
-    next();
+    return next();
   }
 );
 
