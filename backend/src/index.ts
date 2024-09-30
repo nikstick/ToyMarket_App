@@ -71,11 +71,6 @@ app.use(
     //return next(err);
   }
 );
-app.use(
-  async (req: Request, res: Response, next: NextFunction) => {
-    req.path
-  }
-);
 app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: true}));
