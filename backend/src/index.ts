@@ -9,7 +9,7 @@ import type { RowDataPacket } from "mysql2/promise";
 import ipc from "node-ipc";
 
 import { ENTITIES, ENTITIES_RAW, FIELDS, FIELDS_RAW, VALUES } from "common/dist/structures.js";
-import { assert, Elevate } from "common/dist/utils.js";
+import { assert, Elevate, makeASCIISafe } from "common/dist/utils.js";
 import type { NewOrder } from "common/dist/ipc.js";
 import { config } from "common/dist/config.js";
 
@@ -82,7 +82,7 @@ app.use(bodyParser.urlencoded({extended: true}));
 
 class BadAuth extends Error {};
 
-function checkAuth(secret: Buffer | string, data: {hash: string}): boolean {
+function checkAuth(secret: Buffer | string, data: {hash: string, [key: string]: any}): boolean {
   const { hash, ...filtered } = data;
   let encodedData = (
     Object.entries(filtered)
