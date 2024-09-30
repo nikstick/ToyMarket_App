@@ -146,7 +146,10 @@ export class DBSession {
 
   public async fetchProducts(productIDs: number[]): Promise<RowDataPacket[]> {
     const [products] = await this.conn.query(
-      `SELECT product.*, ${Object.values(FIELDS.prices).map((v) => "price." + v).join(", ")}
+      `SELECT
+        product.*,
+        ${Object.values(FIELDS.prices).map((v) => "price." + v).join(", ")},
+        price.${FIELDS.prices.price} * (100 - price.${FIELDS.prices.discount}) / 100 AS discountedPrice
       FROM ${ENTITIES.products} AS product
       JOIN ${ENTITIES.prices} AS price ON price.parent_item_id = product.id
       WHERE price.${FIELDS.prices.isCurrent} = "true" AND product.id IN ?`,
@@ -301,9 +304,9 @@ export class DBSession {
             0,
             product.id,
             data.quantity,
-            product[FIELDS.prices.discountedPrice],
+            product.discountedPrice,
             product[FIELDS.products.recomendedMinimalSize],
-            product[FIELDS.prices.discountedPrice] * data.quantity,
+            product.discountedPrice * data.quantity,
             (new Decimal(data.quantity)).div(product[FIELDS.products.boxSize]).toFixed(6),
             product[FIELDS.products.boxSize],
             product[FIELDS.products.category],  // FIXME: CATEGORY SHOULD BE TRANSLATED
