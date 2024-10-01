@@ -11,7 +11,7 @@ import { ENTITIES, ENTITIES_RAW, FIELDS, FIELDS_RAW } from "common/dist/structur
 import { assert } from "common/dist/utils.js";
 import type { NewOrder } from "common/dist/ipc.js";
 
-import { config } from "./config.js";
+import { config } from "common/dist/config.js";
 import { spruton, storage } from "./controllers.js";
 import { DBSession } from "./db.js";
 import { uselessFront } from "./utils.js";

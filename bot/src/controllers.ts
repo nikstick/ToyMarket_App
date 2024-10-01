@@ -1,9 +1,9 @@
 import { Cache } from "node-ts-cache";
 
 import { Spruton } from "common/dist/controllers.js";
+import { config } from "common/dist/config.js";
 
 import { cacheStorage } from "./utils.js";
-import { config } from "./config.js";
 import { DBSession, NotificationType } from "./db.js";
 
 export var spruton = new Spruton(config);
@@ -32,8 +32,14 @@ class Storage {
     }
   }
 
-  @Cache(cacheStorage, {ttl: 300, isLazy: false})
+  @Cache(
+    cacheStorage, {
+      ttl: 300,
+      isLazy: false
+    }
+  )
   public async isUnapproved(clientTgID: number): Promise<boolean> {
+    if (!config.get("bot.authEnabled")) { return false; }
     for await (const session of DBSession.ctx()) {
       let value = await session.isUnapproved(clientTgID);
       if (!value) { return null as boolean; }

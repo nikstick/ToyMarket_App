@@ -146,7 +146,10 @@ export class DBSession {
 
   public async fetchProducts(productIDs: number[]): Promise<RowDataPacket[]> {
     const [products] = await this.conn.query(
-      `SELECT product.*, ${Object.values(FIELDS.prices).map((v) => "price." + v).join(", ")}
+      `SELECT
+        product.*,
+        ${Object.values(FIELDS.prices).map((v) => "price." + v).join(", ")},
+        price.${FIELDS.prices.price} * (100 - price.${FIELDS.prices.discount}) / 100 AS discountedPrice
       FROM ${ENTITIES.products} AS product
       JOIN ${ENTITIES.prices} AS price ON price.parent_item_id = product.id
       WHERE price.${FIELDS.prices.isCurrent} = "true" AND product.id IN ?`,
@@ -301,9 +304,9 @@ export class DBSession {
             0,
             product.id,
             data.quantity,
-            product[FIELDS.prices.discountedPrice],
+            product.discountedPrice,
             product[FIELDS.products.recomendedMinimalSize],
-            product[FIELDS.prices.discountedPrice] * data.quantity,
+            product.discountedPrice * data.quantity,
             (new Decimal(data.quantity)).div(product[FIELDS.products.boxSize]).toFixed(6),
             product[FIELDS.products.boxSize],
             product[FIELDS.products.category],  // FIXME: CATEGORY SHOULD BE TRANSLATED
@@ -377,5 +380,49 @@ export class DBSession {
       [orderID]
     ) as RowDataPacket[][];
     return order;
+  }
+
+  public async changeOrderStatus(
+    orderID: number,
+    status: typeof VALUES.orders.status[keyof typeof VALUES.orders.status]
+  ): Promise<void> {
+    await this.conn.query(
+      `UPDATE ${ENTITIES.orders}
+      SET ${FIELDS.orders.status} = ?
+      WHERE id = ?`,
+      [status, orderID]
+    );
+    await this.conn.commit();
+  }
+
+  public async createClient(data: {[k in keyof typeof FIELDS.clients]: string | number}): Promise<number> {
+    const [insertResult] = await this.conn.query(
+      `INSERT INTO ${ENTITIES.clients} (
+        ${FIELDS.clients.fullName},
+        ${FIELDS.clients.ruPhoneNumber},
+        ${FIELDS.clients.email},
+        ${FIELDS.clients.companyName},
+        ${FIELDS.clients.status},
+        ${FIELDS.clients.inn},
+        ${FIELDS.clients.tgID},
+        ${FIELDS.clients.personalDiscount},
+        ${FIELDS.clients.tgNick}
+      ) VALUES ?`,
+      [[
+        [
+          data.fullName,
+          data.ruPhoneNumber,
+          data.email,
+          data.companyName,
+          data.status,
+          data.inn,
+          data.tgID,
+          data.personalDiscount,
+          data.tgNick
+        ]
+      ]]
+    ) as ResultSetHeader[];
+    await this.conn.commit();
+    return insertResult.insertId;
   }
 }

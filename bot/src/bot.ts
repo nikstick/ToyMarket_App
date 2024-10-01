@@ -9,11 +9,13 @@ import {
 import { type PhoneNumber, parsePhoneNumber, ParseError } from "libphonenumber-js";
 
 import type { NewOrder } from "common/dist/ipc.js";
+import { ENTITIES_RAW, VALUES } from "common/dist/structures.js";
+import { config } from "common/dist/config.js";
 
-import { config } from "./config.js";
 import { StaticUtils } from "./utils.js";
-import { storage } from "./controllers.js";
+import { spruton, storage } from "./controllers.js";
 import { DBSession } from "./db.js";
+import { randomUUID } from "crypto";
 
 type MyContext = Context & ConversationFlavor;
 type MyConversation = Conversation<MyContext>;
@@ -44,7 +46,7 @@ async function inputPhoneNumber(conversation: MyConversation, ctx: MyContext) {
     other
   );
 
-  let number: string;
+  let phoneNumber: string;
   while (true) {
     const { message } = await conversation.wait();
     for await (const session of DBSession.ctx()) {
@@ -56,13 +58,13 @@ async function inputPhoneNumber(conversation: MyConversation, ctx: MyContext) {
     }
 
     if (message.contact) {
-      number = message.contact.phone_number;
+      phoneNumber = message.contact.phone_number;
       break;
     } else if (message && message.text && message.text.length <= 20) {
       try {
         let parsedNumber = parsePhoneNumber(message.text);
         if (parsedNumber && parsedNumber.isPossible() && parsedNumber.isValid()) {
-          number = parsedNumber.formatInternational();
+          phoneNumber = parsedNumber.formatInternational();
           break;
         }
       } catch (err) {
@@ -74,31 +76,62 @@ async function inputPhoneNumber(conversation: MyConversation, ctx: MyContext) {
     }
   }
 
-  for await (const session of DBSession.ctx()) {
-    await ctx.api.sendMessage(
-      await storage.getManagerTgID(),
-      await StaticUtils.renderText(
-        "new_user",
-        {user: ctx.from, number: number}
-      )
-    );
-    await session.addToApproveQueue(ctx.from.id);
+  if (config.get("bot.authEnabled")) {
+    for await (const session of DBSession.ctx()) {
+      await ctx.api.sendMessage(
+        await storage.getManagerTgID(),
+        await StaticUtils.renderText(
+          "new_user",
+          {user: ctx.from, number: phoneNumber}
+        )
+      );
+      await session.addToApproveQueue(ctx.from.id);
+    }
+  } else {
+    for await (const session of DBSession.ctx()) {
+      let clientID = await session.createClient(
+        {
+          fullName: `${ctx.from.first_name} ${ctx.from.last_name} (@${ctx.from.username})`,
+          tgNick: ctx.from.username,
+          tgID: ctx.from.id,
+          ruPhoneNumber: phoneNumber,
+          status: VALUES.clients.status.active,
+          email: "",
+          address: "",
+          companyName: "",
+          password: randomUUID(),
+          inn: "",
+          personalDiscount: 0
+        }
+      );
+      await spruton.touch(ENTITIES_RAW.clients, clientID);
+    }
+  }
+
+  if (config.get("bot.authEnabled")) {
     await ctx.reply("Данные успешно отправлены");
+  } else {
+    await sendAccessibleNotify(ctx.from.id);
   }
 }
 
 bot.use(createConversation(inputPhoneNumber));
 
 bot.command("start", async (ctx) => {
-  for await (const session of DBSession.ctx()) {
-    // TODO: maybe reuse accessible cache
-    const clientData = await session.fetchClient(ctx.from.id);
+  let done: boolean;
+  {
+    for await (const session of DBSession.ctx()) {
+      // TODO: maybe reuse accessible cache
+      const clientData = await session.fetchClient(ctx.from.id);
 
-    if (clientData != null) {
-      await sendAccessibleNotify(ctx.from.id);
-    } else {
-      await ctx.conversation.enter("inputPhoneNumber");
+      done = (clientData != null);
     }
+  }
+
+  if (done) {
+    await sendAccessibleNotify(ctx.from.id);
+  } else {
+    await ctx.conversation.enter("inputPhoneNumber");
   }
 });
 
@@ -156,18 +189,22 @@ export async function sendAccessibleNotify(clientTgID: number): Promise<void> {
 }
 
 export async function sendNewOrder(data: NewOrder) {
-  const inlineKeyboard = new InlineKeyboard().webApp(
-    "Заказать еще",
-    config.get("bot.webAppURL")
-  );
-  await bot.api.sendMessage(
-    data.client.tgID,
-    await StaticUtils.renderText("new_order", data, false),
-    {
-      parse_mode: "HTML",
-      reply_markup: inlineKeyboard,
-    }
-  );
+  try {
+    const inlineKeyboard = new InlineKeyboard().webApp(
+      "Заказать еще",
+      config.get("bot.webAppURL")
+    );
+    await bot.api.sendMessage(
+      data.client.tgID,
+      await StaticUtils.renderText("new_order", data, false),
+      {
+        parse_mode: "HTML",
+        reply_markup: inlineKeyboard,
+      }
+    );
+  } catch (exc) {
+    console.error(exc);
+  }
 }
 
 bot.use(

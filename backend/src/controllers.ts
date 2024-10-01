@@ -3,8 +3,8 @@ import { Cache } from "node-ts-cache";
 import ipc from "node-ipc";
 
 import { Spruton } from "common/dist/controllers.js";
+import { config } from "common/dist/config.js";
 
-import { config } from "./config.js";
 import { DBSession } from "./db.js";
 import { cacheStorage, uselessFront } from "./utils.js";
 
