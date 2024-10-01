@@ -72,18 +72,6 @@ export var config = convict({
       default: EMPTY_S
     },
     managerID: {format: "int", default: EMPTY_N}
-  },
-  tinkoff: {
-    terminalKey: {
-      format: String,
-      sensitive: true,
-      default: EMPTY_S
-    },
-    secretKey: {
-      format: String,
-      sensitive: true,
-      default: EMPTY_S
-    }
   }
 });
 config.loadFile("../config.yml");
