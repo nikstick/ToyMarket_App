@@ -7,8 +7,8 @@ import bodyParser from "body-parser";
 import type { RowDataPacket } from "mysql2/promise";
 import ipc from "node-ipc";
 
-import { ENTITIES, ENTITIES_RAW, FIELDS, FIELDS_RAW } from "common/dist/structures.js";
-import { assert } from "common/dist/utils.js";
+import { ENTITIES, ENTITIES_RAW, FIELDS, FIELDS_RAW, VALUES } from "common/dist/structures.js";
+import { assert, Elevate, makeASCIISafe } from "common/dist/utils.js";
 import type { NewOrder } from "common/dist/ipc.js";
 
 import { config } from "common/dist/config.js";
@@ -111,7 +111,7 @@ app.get(
 app.get(
   "/api/user",
   async (req: Request, res: Response) => {
-    let client, ordersView;
+    var client;
     for await (const session of DBSession.ctx()) {
       if (req.ctx.isTg) {
         const tgID = req.query.userId;
@@ -123,7 +123,7 @@ app.get(
 
       let orders = await session.fetchClientOrders(client.id);
 
-      ordersView = [];
+      var ordersView = [];
       for (const order of orders) {
         const orderItems = await session.fetchOrderItemsView(order.id);
         orderItems.forEach(uselessFront.product);
@@ -231,7 +231,7 @@ app.post(
           (product) => {
             // FIXME: funny and woozy
             let { id, quantity, inBox } = product;
-            quantity = Math.ceil(quantity * inBox);
+            quantity = Math.ceil(Number(quantity) * inBox);
             return [id, {quantity: quantity}];
           }
         ))
