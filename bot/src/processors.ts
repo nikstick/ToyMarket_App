@@ -7,7 +7,7 @@ import type { NewOrder } from "common/dist/ipc.js";
 
 import { DBSession, NotificationType } from "./db.js";
 import { spruton } from "./controllers.js";
-import { bot, sendAccessibleNotify, sendNewOrder } from "./bot.js";
+import { bot, sendAccessibleNotify, sendNewOrder, sendOrderPaid } from "./bot.js";
 
 async function performBroadcast() {
   for await (const session of DBSession.ctx()) {
@@ -64,6 +64,18 @@ ipc.serve(
       "newOrder",
       (data: NewOrder, socket: Socket) => {
         sendNewOrder(data).then();
+      }
+    );
+    ipc.server.on(
+      "newOrderStatus",
+      (data: any, socket: Socket) => {
+        (async () => {
+          for await (const session of DBSession.ctx()) {
+            if (data.Status != "CONFIRMED") { return; }
+            const client = await session.fetchClientByOrder(data.OrderId);
+            await sendOrderPaid(data, client);
+          }
+        })().then();
       }
     )
   }

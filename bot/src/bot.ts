@@ -7,6 +7,7 @@ import {
   createConversation,
 } from "@grammyjs/conversations";
 import { type PhoneNumber, parsePhoneNumber, ParseError } from "libphonenumber-js";
+import type { RowDataPacket } from "mysql2/promise";
 
 import type { NewOrder } from "common/dist/ipc.js";
 import { ENTITIES_RAW, VALUES } from "common/dist/structures.js";
@@ -202,6 +203,18 @@ export async function sendNewOrder(data: NewOrder) {
         reply_markup: inlineKeyboard,
       }
     );
+  } catch (exc) {
+    console.error(exc);
+  }
+}
+
+export async function sendOrderPaid(data: any, client: RowDataPacket) {
+  try {
+    await bot.api.sendMessage(
+      client.tgID,
+      await StaticUtils.renderText("order_paid", data, false),
+      {parse_mode: "HTML"}
+    )
   } catch (exc) {
     console.error(exc);
   }

@@ -425,4 +425,22 @@ export class DBSession {
     await this.conn.commit();
     return insertResult.insertId;
   }
+
+  public async fetchClientBySprutonID(clientID: number): Promise<RowDataPacket> {
+    const [[client]] = await this.conn.execute(
+      `SELECT * FROM ${ENTITIES.clients} WHERE id = ?`,
+      clientID
+    ) as RowDataPacket[][];
+    return client;
+  }
+
+  public async fetchClientByOrder(orderID: number): Promise<RowDataPacket> {
+    const [[result]] = await this.conn.execute(
+      `SELECT value FROM ${ENTITIES.orders}_values
+      WHERE items_id = ?
+      AND fields_id = ${FIELDS_RAW.orders.client}`,
+      orderID
+    ) as RowDataPacket[][];
+    return await this.fetchClientBySprutonID(result.value);
+  }
 }

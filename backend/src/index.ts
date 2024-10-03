@@ -7,6 +7,7 @@ import cors from "cors";
 import bodyParser from "body-parser";
 import type { RowDataPacket } from "mysql2/promise";
 import ipc from "node-ipc";
+import { Netmask } from "netmask";
 
 import { ENTITIES, ENTITIES_RAW, FIELDS, FIELDS_RAW, VALUES } from "common/dist/structures.js";
 import { assert, Elevate, makeASCIISafe } from "common/dist/utils.js";
@@ -104,6 +105,7 @@ app.use(
       var ctx: RequestContext;
 
       assert(req.method != "GET", Elevate);
+      assert(!req.path.startsWith("/hook"), Elevate);
       const auth = req.headers["authorization"];
       assert(typeof auth !== "undefined", BadAuth);
 
@@ -139,7 +141,7 @@ app.use(
           }
         }
         validateTgUserObject(user);
-        
+
         for await (const session of DBSession.ctx()) {
           let client = await session.fetchClient(user.id);
           assert(client != null, BadAuth);
@@ -460,6 +462,22 @@ app.post(
   }
 )
 
+const TBANK_NETMASKS = [
+  "91.194.226.0/23",
+  "91.218.132.0/24",
+  "91.218.133.0/24",
+  "91.218.134.0/24",
+  "91.218.135.0/24",
+  "212.233.80.0/24",
+  "212.233.81.0/24",
+  "212.233.82.0/24",
+  "212.233.83.0/24",
+// "91.194.226.181"  // TEST SERVER
+].map((mask) => new Netmask(mask));
+function tbankNetmaskCheck(ipaddr: string): boolean {
+  return TBANK_NETMASKS.some((mask) => mask.contains(ipaddr));
+}
+
 const TBANK_NOTIFICATION_ROUTE = "/hook/payment/tbank/update";
 type TBankPaymentStatus = (
   "AUTHORIZED"
@@ -486,7 +504,8 @@ app.post(
     const data: TBankNotificationPayment = req.body;
     assert(typeof data !== "undefined");
     assert(data.TerminalKey == config.get("tinkoff.terminalKey"));
-    // FIXME: check ip addr and crypto
+    assert(tbankNetmaskCheck(req.headers["X-Forwarded-For"] as string));
+    // FIXME: check crypto
 
     console.log(`TBank payment ${data.PaymentId}<${data.OrderId}> ${data.Status} (Success: ${data.Success})`);
 
@@ -509,6 +528,7 @@ app.post(
       }
       if (status != null) {
         await session.changeOrderStatus(data.OrderId, status);
+        ipc.of.bot.emit("newOrderStatus", data);
       }
     }
     return res.status(200).send("OK");
