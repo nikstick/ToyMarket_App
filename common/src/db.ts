@@ -137,10 +137,11 @@ export class DBSession {
       ORDER BY category.id;
     `) as RowDataPacket[][];
     return products.map(
-        (product) => {
-	    product.otherPhotos = (product.otherPhotos ? product.otherPhotos.split(",") : []);
-	    return product;
-	}
+      (product) => {
+        product.otherPhotos = (product.otherPhotos ? product.otherPhotos.split(",") : []);
+        product.keywords = (product.keywords ? product.keywords.split(",") : []);
+        return product;
+      }
     );
   }
 
@@ -193,6 +194,7 @@ export class DBSession {
     return orderItems.map(
         (item) => {
             item.otherPhotos = (item.otherPhotos ? item.otherPhotos.split(",") : []);
+            item.keywords = (item.keywords ? item.keywords.split(",") : []);
             return item;
         }
     );

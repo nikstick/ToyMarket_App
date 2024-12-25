@@ -11,6 +11,11 @@
     "experimentalDecorators": true,
     "esModuleInterop": true,
     "module": "NodeNext",
-    "moduleResolution": "NodeNext"
+    "moduleResolution": "NodeNext",
+    "lib": [
+      "ES2021",
+      "ESNext",
+      "DOM"
+    ]
   }
 }

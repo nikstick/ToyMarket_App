@@ -18,10 +18,21 @@ async function performBroadcast() {
       let newsApiData = await spruton.fetchNews(news.map(x => x.id));
 
       for (const newsItem of news) {
-        const newsText = `${newsItem[FIELDS.news.text]}`;
+        let newsText = `${newsItem[FIELDS.news.text]}`;
         let newsImg: string | undefined;
         if (newsItem[FIELDS.news.img]) {
           newsImg = spruton.imageURL(newsApiData[newsItem.id], FIELDS_RAW.news.img);
+        }
+
+        if (newsText) {
+          newsText = (
+            newsText
+            .replaceAll(/<br ?\/>/g, "")
+            .replaceAll("&quot;", '"')
+            .replaceAll("&nbsp;", " ")
+          );
+        } else {
+          newsText = "";
         }
 
         for (const user of users) {
@@ -30,7 +41,7 @@ async function performBroadcast() {
             if (newsImg) {
               await bot.api.sendPhoto(userTgID, newsImg, {caption: `${newsText}`, parse_mode: "HTML"});
             } else {
-              await bot.api.sendMessage(userTgID, newsText)
+              await bot.api.sendMessage(userTgID, newsText);
             }
           } catch (error) {
             console.error(`Error in sending news to ${userTgID}:`, error);

@@ -10,7 +10,12 @@
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "composite": true,
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    "lib": [
+      "ES2021",
+      "ESNext",
+      "DOM"
+    ]
   },
   "include": ["src/**/*"],
   "references": [
