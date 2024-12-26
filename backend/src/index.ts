@@ -1,5 +1,5 @@
 import http from "node:http";
-import { createHmac, createHash } from "node:crypto";
+import { createHmac, createHash, randomUUID } from "node:crypto";
 
 import express, { type Request, type Response, type NextFunction } from "express";
 import "express-async-errors";
@@ -144,6 +144,27 @@ app.use(
 
         for await (const session of DBSession.ctx()) {
           let client = await session.fetchClient(user.id);
+          if (client == null) {
+            if (auth == "WebApp") {
+              let clientID = await session.createClient(
+                {
+                  fullName: `${user.first_name} ${user.last_name} (@${user.username})`,
+                  tgNick: user.username,
+                  tgID: user.id,
+                  ruPhoneNumber: "",
+                  status: VALUES.clients.status.active,
+                  email: "",
+                  address: "",
+                  companyName: "",
+                  password: randomUUID(),
+                  inn: "",
+                  personalDiscount: 0
+                }
+              );
+              await spruton.touch(ENTITIES_RAW.clients, clientID);
+              client = await session.fetchClient(user.id);
+            }
+          }
           assert(client != null, BadAuth);
           ctx = {isTg: true, isMiniApp: isMiniApp, tgUser: user, client: client};
         }
