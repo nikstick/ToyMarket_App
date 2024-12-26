@@ -146,6 +146,8 @@ node_modules
 /config.json
 /config.yml
 /.local
+/build
+/build.zip
 
 # yarn v4
 .yarnrc.yml

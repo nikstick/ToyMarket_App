@@ -6,8 +6,9 @@
     "backend"
   ],
   "scripts": {
-    "build": "yarn tsc --build --force",
-    "linking": "yarn workspaces foreach --all link"
+    "build": "yarn tsc --build --force --verbose",
+    "linking": "yarn workspaces foreach --all link",
+    "prod": "python3 pack.py"
   },
   "version": "1.0.0",
   "packageManager": "yarn@4.4.1",
