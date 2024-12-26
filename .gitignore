@@ -148,6 +148,7 @@ node_modules
 /.local
 /build
 /build.zip
+.envrc
 
 # yarn v4
 .yarnrc.yml
