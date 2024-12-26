@@ -179,7 +179,7 @@ export async function sendAccessibleNotify(clientTgID: number): Promise<void> {
   try {
   await bot.api.sendPhoto(
     clientTgID,
-    "https://i.imgur.com/5QnS7NR.jpg",
+    "https://i.imgur.com/hOJ2K0D.jpg",
     {
       caption: await StaticUtils.getText("start"),
       reply_markup: new InlineKeyboard().webApp("Заказать", config.get("bot.webAppURL"))
