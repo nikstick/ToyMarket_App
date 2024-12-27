@@ -20,5 +20,8 @@ export namespace uselessFront {
           otherImages: obj.otherPhotos,
         }
       )
+      if (obj.categoryName == null) {
+        obj.categoryName = "Без категории";
+      }
     }
 }

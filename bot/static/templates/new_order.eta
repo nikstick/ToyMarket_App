@@ -14,9 +14,9 @@
 <%- let fullPrice = 0 %>
 <%- it.items.forEach(function(v) { %>
 <%- let [item, data] = v %>
-<%- let amount = Number(item.discountedPrice) * Number(data.quantity) %>
+<%- let amount = Number(item[it.FIELDS.products.discountedPrice]) * Number(data.quantity) %>
 <%- fullPrice += amount %>
-<%= item[it.FIELDS.products.article] %> - <%= item.discountedPrice %> р/шт. - <%= data.quantity %> шт. - <%= amount %> руб.
+<%= item[it.FIELDS.products.article] %> - <%= item[it.FIELDS.products.discountedPrice] %> р/шт. - <%= data.quantity %> шт. - <%= amount %> руб.
 <%- }) %>
 
 <b>Итого:</b> <%= fullPrice %> руб.

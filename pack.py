@@ -24,6 +24,7 @@ BUILD_OUT_PATH.mkdir(parents=True)
 for path in tuple(
     itertools.chain(
         PROJ_PATH.glob("*/dist/*"),
+        PROJ_PATH.glob("*/static/**/*"),
         PROJ_PATH.rglob("*.json"),
         PROJ_PATH.rglob("./*.sh"),
         PROJ_PATH.rglob("*.lock"),

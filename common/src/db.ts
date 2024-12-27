@@ -152,11 +152,11 @@ export class DBSession {
         shoeSize.${aliasedAs(FIELDS.shoeSizes.length, "shoeSizeLength")},
         shoeSize.${aliasedAs(FIELDS.shoeSizes.ruSize, "shoeSizeRu")},
         shoeSize.${aliasedAs(FIELDS.shoeSizes.euSize, "shoeSizeEu")}
-      FROM ${ENTITIES.productCategories} AS category
-      JOIN ${ENTITIES.products} AS product ON category.id = product.${FIELDS.products.category}
-      JOIN ${ENTITIES.productSubCategory} AS subCategory ON subCategory.id = product.${FIELDS.products.subCategory}
-      JOIN ${ENTITIES.tradeMarks} AS tradeMark ON tradeMark.id = product.${FIELDS.products.tradeMark}
-      JOIN ${ENTITIES.shoeSizes} AS shoeSize ON shoeSize.id = product.${FIELDS.products.shoeSize}
+      FROM ${ENTITIES.products} AS product
+      LEFT JOIN ${ENTITIES.productCategories} AS category ON category.id = product.${FIELDS.products.category}
+      LEFT JOIN ${ENTITIES.productSubCategory} AS subCategory ON subCategory.id = product.${FIELDS.products.subCategory}
+      LEFT JOIN ${ENTITIES.tradeMarks} AS tradeMark ON tradeMark.id = product.${FIELDS.products.tradeMark}
+      LEFT JOIN ${ENTITIES.shoeSizes} AS shoeSize ON shoeSize.id = product.${FIELDS.products.shoeSize}
       WHERE product.${FIELDS.products.status} != ${VALUES.products.status.inactive}
       ORDER BY category.id;
     `) as RowDataPacket[][];
@@ -225,11 +225,11 @@ export class DBSession {
         shoeSize.${aliasedAs(FIELDS.shoeSizes.length, "shoeSizeLength")},
         shoeSize.${aliasedAs(FIELDS.shoeSizes.ruSize, "shoeSizeRu")},
         shoeSize.${aliasedAs(FIELDS.shoeSizes.euSize, "shoeSizeEu")}
-      FROM ${ENTITIES.orderItems} as item
-      JOIN ${ENTITIES.products} AS product ON item.${FIELDS.orderItems.product} = product.id
-      JOIN ${ENTITIES.productSubCategory} AS subCategory ON subCategory.id = product.${FIELDS.products.subCategory}
-      JOIN ${ENTITIES.tradeMarks} AS tradeMark ON tradeMark.id = product.${FIELDS.products.tradeMark}
-      JOIN ${ENTITIES.shoeSizes} AS shoeSize ON shoeSize.id = product.${FIELDS.products.shoeSize}
+      FROM ${ENTITIES.products} AS product
+      LEFT JOIN ${ENTITIES.orderItems} as item ON item.${FIELDS.orderItems.product} = product.id
+      LEFT JOIN ${ENTITIES.productSubCategory} AS subCategory ON subCategory.id = product.${FIELDS.products.subCategory}
+      LEFT JOIN ${ENTITIES.tradeMarks} AS tradeMark ON tradeMark.id = product.${FIELDS.products.tradeMark}
+      LEFT JOIN ${ENTITIES.shoeSizes} AS shoeSize ON shoeSize.id = product.${FIELDS.products.shoeSize}
       WHERE item.parent_item_id = ?`,
       [orderID]
     ) as RowDataPacket[][];
