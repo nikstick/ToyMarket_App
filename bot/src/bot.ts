@@ -207,6 +207,17 @@ export async function sendNewOrder(data: NewOrder) {
   } catch (exc) {
     console.error(exc);
   }
+  try {
+    await bot.api.sendMessage(
+      config.get("bot.adminChat"),
+      await StaticUtils.renderText("admin_new_order", data, false),
+      {
+        parse_mode: "HTML",
+      }
+    );
+  } catch (exc) {
+    console.error(exc);
+  }
 }
 
 export async function sendOrderPaid(data: any, client: RowDataPacket) {

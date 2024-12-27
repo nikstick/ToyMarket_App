@@ -34,7 +34,8 @@ export var config = convict({
     token: {format: String, default: EMPTY_S},
     retryDelay: {format: "int", default: 120},
     webAppURL: {format: "cleanURL", default: EMPTY_S},
-    authEnabled: {format: Boolean, default: true}
+    authEnabled: {format: Boolean, default: true},
+    adminChat: {format: "int", default: EMPTY_S}
   },
   db: {
     host: {format: "cleanURL", default: EMPTY_S},

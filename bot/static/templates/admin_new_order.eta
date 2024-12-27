@@ -1,0 +1,22 @@
+Новый заказ №<%= it.orderID %> оформлен.
+
+<b>ФИО:</b> <%= it.client.fullName %>
+<b>Телефон:</b> <%= it.client.phoneNumber %>
+<b>Адрес:</b> <%= it.client.address %>
+<b>Комментарий:</b> <%= it.client.comment %>
+<b>Компания:</b> <%= it.client.companyName %>
+<b>ИНН:</b> <%= it.client.inn %>
+
+<b>Способ получения:</b> <%= it.src.delivery %>
+<b>Оплата:</b> <%= it.src.payBy %>
+
+<b>Состав заказа:</b>
+<%- let fullPrice = 0 %>
+<%- it.items.forEach(function(v) { %>
+<%- let [item, data] = v %>
+<%- let amount = Number(item.discountedPrice) * Number(data.quantity) %>
+<%- fullPrice += amount %>
+<%= item[it.FIELDS.products.article] %> - <%= item.discountedPrice %> р/шт. - <%= data.quantity %> шт. - <%= amount %> руб.
+<%- }) %>
+
+<b>Итого:</b> <%= fullPrice %> руб.
