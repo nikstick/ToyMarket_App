@@ -147,17 +147,17 @@ export class DBSession {
         tradeMark.${aliasedAs(FIELDS.tradeMarks.name, "tradeMarkName")},
         tradeMark.${aliasedAs(FIELDS.tradeMarks.logo, "tradeMarkLogo")},
         tradeMark.${aliasedAs(FIELDS.tradeMarks.about, "tradeMarkAbout")},
-        shoeSize.${aliasedAs(FIELDS.shoeSizes.name), "shoeSizeName"},
-        shoeSize.${aliasedAs(FIELDS.shoeSizes.cls), "shoeSizeClass"},
-        shoeSize.${aliasedAs(FIELDS.shoeSizes.length), "shoeSizeLength"},
-        shoeSize.${aliasedAs(FIELDS.shoeSizes.ruSize), "shoeSizeRu"},
-        shoeSize.${aliasedAs(FIELDS.shoeSizes.euSize), "shoeSizeEu"}
+        shoeSize.${aliasedAs(FIELDS.shoeSizes.name, "shoeSizeName")},
+        shoeSize.${aliasedAs(FIELDS.shoeSizes.cls, "shoeSizeClass")},
+        shoeSize.${aliasedAs(FIELDS.shoeSizes.length, "shoeSizeLength")},
+        shoeSize.${aliasedAs(FIELDS.shoeSizes.ruSize, "shoeSizeRu")},
+        shoeSize.${aliasedAs(FIELDS.shoeSizes.euSize, "shoeSizeEu")}
       FROM ${ENTITIES.productCategories} AS category
       JOIN ${ENTITIES.products} AS product ON category.id = product.${FIELDS.products.category}
       JOIN ${ENTITIES.productSubCategory} AS subCategory ON subCategory.id = product.${FIELDS.products.subCategory}
-      JOIN ${ENTITIES.tradeMarks} AS tradeMark ON tradeMarkID = product.${FIELDS.products.tradeMark}
+      JOIN ${ENTITIES.tradeMarks} AS tradeMark ON tradeMark.id = product.${FIELDS.products.tradeMark}
       JOIN ${ENTITIES.shoeSizes} AS shoeSize ON shoeSize.id = product.${FIELDS.products.shoeSize}
-      WHERE products.status != ${VALUES.products.status.inactive}
+      WHERE product.${FIELDS.products.status} != ${VALUES.products.status.inactive}
       ORDER BY category.id;
     `) as RowDataPacket[][];
     return products.map(
@@ -220,15 +220,15 @@ export class DBSession {
         tradeMark.${aliasedAs(FIELDS.tradeMarks.name, "tradeMarkName")},
         tradeMark.${aliasedAs(FIELDS.tradeMarks.logo, "tradeMarkLogo")},
         tradeMark.${aliasedAs(FIELDS.tradeMarks.about, "tradeMarkAbout")},
-        shoeSize.${aliasedAs(FIELDS.shoeSizes.name), "shoeSizeName"},
-        shoeSize.${aliasedAs(FIELDS.shoeSizes.cls), "shoeSizeClass"},
-        shoeSize.${aliasedAs(FIELDS.shoeSizes.length), "shoeSizeLength"},
-        shoeSize.${aliasedAs(FIELDS.shoeSizes.ruSize), "shoeSizeRu"},
-        shoeSize.${aliasedAs(FIELDS.shoeSizes.euSize), "shoeSizeEu"}
+        shoeSize.${aliasedAs(FIELDS.shoeSizes.name, "shoeSizeName")},
+        shoeSize.${aliasedAs(FIELDS.shoeSizes.cls, "shoeSizeClass")},
+        shoeSize.${aliasedAs(FIELDS.shoeSizes.length, "shoeSizeLength")},
+        shoeSize.${aliasedAs(FIELDS.shoeSizes.ruSize, "shoeSizeRu")},
+        shoeSize.${aliasedAs(FIELDS.shoeSizes.euSize, "shoeSizeEu")}
       FROM ${ENTITIES.orderItems} as item
       JOIN ${ENTITIES.products} AS product ON item.${FIELDS.orderItems.product} = product.id
       JOIN ${ENTITIES.productSubCategory} AS subCategory ON subCategory.id = product.${FIELDS.products.subCategory}
-      JOIN ${ENTITIES.tradeMarks} AS tradeMark ON tradeMarkID = product.${FIELDS.products.tradeMark}
+      JOIN ${ENTITIES.tradeMarks} AS tradeMark ON tradeMark.id = product.${FIELDS.products.tradeMark}
       JOIN ${ENTITIES.shoeSizes} AS shoeSize ON shoeSize.id = product.${FIELDS.products.shoeSize}
       WHERE item.parent_item_id = ?`,
       [orderID]

@@ -51,6 +51,8 @@ for path in tuple(
 if sys.argv[-1] == "deps":
     os.chdir(BUILD_OUT_PATH)
     os.system("bash pack_install_deps.sh")
+    os.chdir(BUILD_OUT_PATH / "node_modules")
+    os.system("rm -rf common bot backend")
 
 os.chdir(BUILD_PATH)
 os.system(f"zip -r build.zip {BUILD_OUT_PATH.relative_to(BUILD_PATH)}")

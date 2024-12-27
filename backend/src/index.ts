@@ -232,7 +232,7 @@ app.get(
   "/api/trademark_image/:id/:file",
   async (req: Request, res: Response) => {
     const { id, file } = req.params;
-    spruton.downloadAttachment(ENTITIES_RAW.tradeMarks, Number(id), file, res, true);
+    spruton.fileExportDownload(ENTITIES_RAW.tradeMarks, Number(id), FIELDS_RAW.tradeMarks.logo, file, res);
   }
 );
 
