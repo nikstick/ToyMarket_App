@@ -229,6 +229,14 @@ app.get(
 );
 
 app.get(
+  "/api/trademark_image/:id/:file",
+  async (req: Request, res: Response) => {
+    const { id, file } = req.params;
+    spruton.downloadAttachment(ENTITIES_RAW.tradeMarks, Number(id), file, res, true);
+  }
+);
+
+app.get(
   "/api/products",
   async (req: Request, res: Response) => {
     return res.json({data: await storage.getProductsByCategoryView()});

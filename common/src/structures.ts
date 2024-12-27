@@ -8,7 +8,10 @@ export const ENTITIES_RAW = {
   orderItems: 28,
   clients: 29,
   news: 30,
-  prices: 31
+  prices: 31,
+  productSubCategory: 36,
+  tradeMarks: 37,
+  shoeSizes: 38,
 } as const;
 export const FIELDS_RAW = {
   users: {
@@ -42,14 +45,27 @@ export const FIELDS_RAW = {
     description: 274,
     review: 275,
     isNew: 277,
+    status: 278,
     otherPhotos: 288,
     recomendedMinimalSize: 306,
     recomendedMinimalSizeBoxParts: 315,
-    price: 318,
     keywords: 319,
     tax: 370,
     packageSize: 383,
+    color: 388,
     finalPriceServiced: 401,
+    modelName: 423,
+    tradeMark: 425,
+    textColor: 433,
+    shoeSize: 434,
+    price: 435,
+    discountedPrice: 437,
+    producingCountry: 439,
+    minKidAge: 442,
+    maxKidAge: 443,
+    kidGender: 444,
+    subCategory: 456,
+    rutubeReview: 461,
   },
   productCategories: {
     name: 213
@@ -91,12 +107,48 @@ export const FIELDS_RAW = {
     discountedPrice: 322,
     article: 373,
     code: 374
-  }
+  },
+  productSubCategory: {
+    name: 422,
+  },
+  tradeMarks: {
+    name: 436,
+    about: 458,
+    logo: 459,
+  },
+  shoeSizes: {
+    length: 451,
+    ruSize: 452,
+    euSize: 453,
+    cls: 454,
+    name: 455,
+  },
 } as const;
 export const VALUES = {
   clients: {
     status: {
       active: 68,
+    },
+  },
+  products: {
+    status: {
+      active: 70,
+      inactive: 71,
+    },
+    producingCountry: {
+      china: 53,
+      russia: 54,
+      turkey: 55,
+    },
+    color: {
+      red: 76,
+      gray: 77,
+      blue: 78,
+      black: 79,
+      green: 80,
+      violet: 81,
+      multicolor: 82,
+      yellow: 84,
     },
   },
   orders: {
@@ -117,12 +169,38 @@ export const VALUES = {
       archived: 46
     },
   },
+  shoeSizes: {
+    cls: {
+      forKids: 72,
+      beforeSchool: 73,
+    },
+  },
   global: {
     tax: {
       none: 50,
       perc10: 51,
       perc20: 52
     },
+    kidAge: {
+      0: 56,
+      1: 57,
+      2: 58,
+      3: 59,
+      4: 60,
+      5: 61,
+      6: 62,
+      7: 63,
+      8: 64,
+      9: 65,
+      10: 66,
+      11: 67,
+      12: 68,
+    },
+    kidGender: {
+      male: 69,
+      female: 70,
+      unisex: 71
+    }
   },
 } as const;
 

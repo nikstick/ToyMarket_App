@@ -120,9 +120,11 @@ export class DBSession {
         product.id AS id,
         category.id AS categoryID,
         category.${aliasedAs(FIELDS.productCategories.name, "categoryName")},
+        subCategory.${aliasedAs(FIELDS.productSubCategory.name, "subCategoryName")},
         product.${aliasedAs(FIELDS.products.photo)},
         product.${aliasedAs(FIELDS.products.article)},
-        product.${aliasedAs(FIELDS.products.finalPriceServiced, "price")},
+        product.${aliasedAs(FIELDS.products.price)},
+        product.${aliasedAs(FIELDS.products.discountedPrice)},
         product.${aliasedAs(FIELDS.products.recomendedMinimalSize)},
         product.${aliasedAs(FIELDS.products.boxSize)},
         product.${aliasedAs(FIELDS.products.packageSize)},
@@ -131,9 +133,31 @@ export class DBSession {
         product.${aliasedAs(FIELDS.products.description)},
         product.${aliasedAs(FIELDS.products.review)},
         product.${aliasedAs(FIELDS.products.keywords)},
-        product.${aliasedAs(FIELDS.products.otherPhotos)}
+        product.${aliasedAs(FIELDS.products.otherPhotos)},
+        product.${aliasedAs(FIELDS.products.rutubeReview)},
+        product.${aliasedAs(FIELDS.products.textColor)},
+        product.${aliasedAs(FIELDS.products.status)},
+        product.${aliasedAs(FIELDS.products.modelName)},
+        product.${aliasedAs(FIELDS.products.producingCountry)},
+        product.${aliasedAs(FIELDS.products.minKidAge)},
+        product.${aliasedAs(FIELDS.products.maxKidAge)},
+        product.${aliasedAs(FIELDS.products.kidGender)},
+        product.${aliasedAs(FIELDS.products.color)},
+        tradeMark.id AS tradeMarkID,
+        tradeMark.${aliasedAs(FIELDS.tradeMarks.name, "tradeMarkName")},
+        tradeMark.${aliasedAs(FIELDS.tradeMarks.logo, "tradeMarkLogo")},
+        tradeMark.${aliasedAs(FIELDS.tradeMarks.about, "tradeMarkAbout")},
+        shoeSize.${aliasedAs(FIELDS.shoeSizes.name), "shoeSizeName"},
+        shoeSize.${aliasedAs(FIELDS.shoeSizes.cls), "shoeSizeClass"},
+        shoeSize.${aliasedAs(FIELDS.shoeSizes.length), "shoeSizeLength"},
+        shoeSize.${aliasedAs(FIELDS.shoeSizes.ruSize), "shoeSizeRu"},
+        shoeSize.${aliasedAs(FIELDS.shoeSizes.euSize), "shoeSizeEu"}
       FROM ${ENTITIES.productCategories} AS category
       JOIN ${ENTITIES.products} AS product ON category.id = product.${FIELDS.products.category}
+      JOIN ${ENTITIES.productSubCategory} AS subCategory ON subCategory.id = product.${FIELDS.products.subCategory}
+      JOIN ${ENTITIES.tradeMarks} AS tradeMark ON tradeMarkID = product.${FIELDS.products.tradeMark}
+      JOIN ${ENTITIES.shoeSizes} AS shoeSize ON shoeSize.id = product.${FIELDS.products.shoeSize}
+      WHERE products.status != ${VALUES.products.status.inactive}
       ORDER BY category.id;
     `) as RowDataPacket[][];
     return products.map(
@@ -147,13 +171,9 @@ export class DBSession {
 
   public async fetchProducts(productIDs: number[]): Promise<RowDataPacket[]> {
     const [products] = await this.conn.query(
-      `SELECT
-        product.*,
-        ${Object.values(FIELDS.prices).map((v) => "price." + v).join(", ")},
-        price.${FIELDS.prices.price} * (100 - price.${FIELDS.prices.discount}) / 100 AS discountedPrice
+      `SELECT product.*
       FROM ${ENTITIES.products} AS product
-      JOIN ${ENTITIES.prices} AS price ON price.parent_item_id = product.id
-      WHERE price.${FIELDS.prices.isCurrent} = "true" AND product.id IN ?`,
+      WHERE product.id IN ?`,
       [[productIDs]]
     ) as RowDataPacket[][];
     return products;
@@ -175,6 +195,7 @@ export class DBSession {
         item.${aliasedAs(FIELDS.orderItems.product, "productID")},
         item.${aliasedAs(FIELDS.orderItems.quantity)},
         item.${aliasedAs(FIELDS.orderItems.taxedPrice, "price")},
+        subCategory.${aliasedAs(FIELDS.productSubCategory.name, "subCategoryName")},
         product.${aliasedAs(FIELDS.products.photo)},
         product.${aliasedAs(FIELDS.products.article)},
         product.${aliasedAs(FIELDS.products.recomendedMinimalSize)},
@@ -185,9 +206,30 @@ export class DBSession {
         product.${aliasedAs(FIELDS.products.description)},
         product.${aliasedAs(FIELDS.products.review)},
         product.${aliasedAs(FIELDS.products.keywords)},
-        product.${aliasedAs(FIELDS.products.otherPhotos)}
+        product.${aliasedAs(FIELDS.products.otherPhotos)},
+        product.${aliasedAs(FIELDS.products.rutubeReview)},
+        product.${aliasedAs(FIELDS.products.textColor)},
+        product.${aliasedAs(FIELDS.products.status)},
+        product.${aliasedAs(FIELDS.products.modelName)},
+        product.${aliasedAs(FIELDS.products.producingCountry)},
+        product.${aliasedAs(FIELDS.products.minKidAge)},
+        product.${aliasedAs(FIELDS.products.maxKidAge)},
+        product.${aliasedAs(FIELDS.products.kidGender)},
+        product.${aliasedAs(FIELDS.products.color)},
+        tradeMark.id AS tradeMarkID,
+        tradeMark.${aliasedAs(FIELDS.tradeMarks.name, "tradeMarkName")},
+        tradeMark.${aliasedAs(FIELDS.tradeMarks.logo, "tradeMarkLogo")},
+        tradeMark.${aliasedAs(FIELDS.tradeMarks.about, "tradeMarkAbout")},
+        shoeSize.${aliasedAs(FIELDS.shoeSizes.name), "shoeSizeName"},
+        shoeSize.${aliasedAs(FIELDS.shoeSizes.cls), "shoeSizeClass"},
+        shoeSize.${aliasedAs(FIELDS.shoeSizes.length), "shoeSizeLength"},
+        shoeSize.${aliasedAs(FIELDS.shoeSizes.ruSize), "shoeSizeRu"},
+        shoeSize.${aliasedAs(FIELDS.shoeSizes.euSize), "shoeSizeEu"}
       FROM ${ENTITIES.orderItems} as item
       JOIN ${ENTITIES.products} AS product ON item.${FIELDS.orderItems.product} = product.id
+      JOIN ${ENTITIES.productSubCategory} AS subCategory ON subCategory.id = product.${FIELDS.products.subCategory}
+      JOIN ${ENTITIES.tradeMarks} AS tradeMark ON tradeMarkID = product.${FIELDS.products.tradeMark}
+      JOIN ${ENTITIES.shoeSizes} AS shoeSize ON shoeSize.id = product.${FIELDS.products.shoeSize}
       WHERE item.parent_item_id = ?`,
       [orderID]
     ) as RowDataPacket[][];
@@ -306,9 +348,9 @@ export class DBSession {
             0,
             product.id,
             data.quantity,
-            product.discountedPrice,
+            product[FIELDS.products.discountedPrice],
             product[FIELDS.products.recomendedMinimalSize],
-            product.discountedPrice * data.quantity,
+            product[FIELDS.products.discountedPrice] * data.quantity,
             (new Decimal(data.quantity)).div(product[FIELDS.products.boxSize]).toFixed(6),
             product[FIELDS.products.boxSize],
             product[FIELDS.products.category],  // FIXME: CATEGORY SHOULD BE TRANSLATED
