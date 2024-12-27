@@ -142,6 +142,11 @@ bot.on("message", async (ctx) => {
     if (msg.text && msg.text.startsWith("/")) { return; }
     const mngrID = await storage.getManagerTgID();
 
+    if (msg.chat.type == "group" || msg.chat.type == "supergroup") {
+      console.log(`${msg.chat.id} - ${msg.text}`);
+      return;
+    }
+
     if (msg.from.id != mngrID) {
       await ctx.api.forwardMessage(mngrID, ctx.from.id, msg.message_id);
     } else {

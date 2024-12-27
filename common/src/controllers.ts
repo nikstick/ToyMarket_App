@@ -46,9 +46,7 @@ export class Spruton<ConfigSchemaT extends SprutonConfigSchema> {
         key: this.config.get("spruton.apiKey"),
         action: "select",
         entity_id: ENTITIES_RAW.news,
-        items: {
-          id: newsIDs.join(",")
-        }
+        ["filters[id]"]: newsIDs.join(",")
       },
       {headers: {"Content-Type": "multipart/form-data"}}
     );
@@ -58,6 +56,23 @@ export class Spruton<ConfigSchemaT extends SprutonConfigSchema> {
         x => [x.id, x]
       )
     );
+  }
+
+  public async fetchOrder(orderID: number): Promise<SprutonItem> {
+    const fetchResp = await axios.post(
+      `${this.config.get("spruton.url")}/api/rest.php`,
+      {
+        username: this.config.get("spruton.username"),
+        password: this.config.get("spruton.password"),
+        key: this.config.get("spruton.apiKey"),
+        action: "select",
+        entity_id: ENTITIES_RAW.orders,
+        ["filters[id]"]: `${orderID}`
+      },
+      {headers: {"Content-Type": "multipart/form-data"}}
+    );
+    assert(fetchResp.status == 200);
+    return fetchResp.data.data[0];
   }
 
   public async touch(

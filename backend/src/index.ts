@@ -280,7 +280,8 @@ app.post(
           address: client[FIELDS.clients.address],
           company: client[FIELDS.clients.companyName],
           inn: client[FIELDS.clients.inn],
-          orders: ordersView
+          orders: ordersView,
+          personalDiscount: client[FIELDS.clients.personalDiscount]
         },
       });
     } else {
@@ -326,10 +327,10 @@ app.post(
 
     let client = req.ctx.client;
     for await (const session of DBSession.ctx()) {
-      let personalDiscount: number;
+      var personalDiscount: number;
       {
         let personalDiscountSrc = client[FIELDS.clients.personalDiscount];
-        if (!personalDiscountSrc) {
+        if (personalDiscountSrc == null || !personalDiscountSrc) {
           personalDiscount = 0;
         } else {
           personalDiscount = Number(personalDiscountSrc);
@@ -366,24 +367,34 @@ app.post(
         companyName,
         inn
       );
+
+      var orderMetaData = await session.fetchOrder(orderID);
     }
 
   if (req.ctx.isTg) {
-    let data: NewOrder = {
-      orderID: orderID,
-      client: {
-        tgID: client[FIELDS.clients.tgID],
-        fullName: name,
-        phoneNumber: phone,
-        address: address,
-        comment: comment,
-        companyName: companyName,
-        inn: inn
+    setTimeout(
+      async () => {
+        let data: NewOrder = {
+          orderID: orderID,
+          client: {
+            tgID: client[FIELDS.clients.tgID],
+            fullName: name,
+            phoneNumber: phone,
+            address: address,
+            comment: comment,
+            companyName: companyName,
+            inn: inn,
+            personalDiscount: personalDiscount
+          },
+          src: req.body,
+          items: items,
+          orderMeta: orderMetaData,
+          orderMetaExtra: await spruton.fetchOrder(orderID)
+        }
+        ipc.of.bot.emit("newOrder", data);
       },
-      src: req.body,
-      items: items
-    }
-    ipc.of.bot.emit("newOrder", data);
+      2000
+    );
   }
 
   return res.status(200).json({status: "ok", orderID: orderID});

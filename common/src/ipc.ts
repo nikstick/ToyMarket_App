@@ -1,5 +1,7 @@
 import type { RowDataPacket } from "mysql2";
 
+import { SprutonItem } from "./structures.js";
+
 export interface NewOrder {
   orderID: number;
   client: {
@@ -10,6 +12,7 @@ export interface NewOrder {
     comment: string;
     companyName: string;
     inn: string;
+    personalDiscount: number;
   }
   src: {
     delivery: string;
@@ -18,5 +21,7 @@ export interface NewOrder {
   items: [
     RowDataPacket,
     {quantity: number}
-  ][]
+  ][];
+  orderMeta: RowDataPacket;
+  orderMetaExtra: SprutonItem;
 }
