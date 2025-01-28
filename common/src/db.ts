@@ -1,9 +1,12 @@
+import { exit } from "node:process";
+
 import {
   type PoolOptions,
   type Pool,
   type PoolConnection,
   type RowDataPacket,
   type ResultSetHeader,
+  type ErrorPacketParams,
   createPool
 } from "mysql2/promise";
 import type { Config } from "convict";
@@ -61,6 +64,15 @@ export class DBSession {
 
   constructor(conn: PoolConnection) {
     this.conn = conn;
+    conn.on(
+      "error",
+      (err: ErrorPacketParams) => {
+        if (err.code == "PROTOCOL_CONNECTION_LOST") {
+          console.error(`DB CONNECTION ERROR: ${err.message}`);
+          exit(1);
+        }
+      }
+    )
   }
 
   // works like ctx manager with for..of

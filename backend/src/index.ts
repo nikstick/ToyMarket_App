@@ -69,7 +69,7 @@ app.use(
       console.error(err.stack);
       res.status(500).send("Internal Server Error");
     }
-    //return next(err);
+    throw err;
   }
 );
 app.use(cors());
@@ -187,15 +187,16 @@ app.use(
       }
     } catch(exc) {
       if (exc instanceof Elevate) {
-        return next();
+        next();
+        return;
       } else if (exc instanceof BadAuth) {
         return res.status(401).send("Auth error");
       } else {
-        return next(exc);
+        throw exc;
       }
     }
     req.ctx = ctx;
-    return next();
+    next();
   }
 );
 
@@ -374,6 +375,13 @@ app.post(
   if (req.ctx.isTg) {
     setTimeout(
       async () => {
+        try {
+          var orderMetaExtra = await spruton.fetchOrder(orderID);
+        } catch (err) {
+          console.error(err);
+          console.error(err.stack);
+          return;
+        }
         let data: NewOrder = {
           orderID: orderID,
           client: {
@@ -389,7 +397,7 @@ app.post(
           src: req.body,
           items: items,
           orderMeta: orderMetaData,
-          orderMetaExtra: await spruton.fetchOrder(orderID)
+          orderMetaExtra: orderMetaExtra
         }
         ipc.of.bot.emit("newOrder", data);
       },

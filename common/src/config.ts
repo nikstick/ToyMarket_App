@@ -52,7 +52,7 @@ export var config = convict({
     },
     extras: {
       format: Object,
-      default: {connectionLimit: 100}
+      default: {connectionLimit: 20}
     }
   },
   spruton: {
