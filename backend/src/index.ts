@@ -187,7 +187,7 @@ app.use(
       }
     } catch(exc) {
       if (exc instanceof Elevate) {
-        next();
+        await next();
         return;
       } else if (exc instanceof BadAuth) {
         return res.status(401).send("Auth error");
@@ -196,7 +196,7 @@ app.use(
       }
     }
     req.ctx = ctx;
-    next();
+    await next();
   }
 );
 
