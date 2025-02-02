@@ -208,6 +208,7 @@ export class DBSession {
         item.${aliasedAs(FIELDS.orderItems.quantity)},
         item.${aliasedAs(FIELDS.orderItems.discountedPrice, "discountedPrice")},
         item.${aliasedAs(FIELDS.orderItems.price, "price")},
+        item.${aliasedAs(FIELDS.orderItems.amount, "amount")},
         subCategory.${aliasedAs(FIELDS.productSubCategory.name, "subCategoryName")},
         product.${aliasedAs(FIELDS.products.photo)},
         product.${aliasedAs(FIELDS.products.article)},

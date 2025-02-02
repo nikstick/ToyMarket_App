@@ -256,11 +256,7 @@ app.post(
         const orderItems = await session.fetchOrderItemsView(order.id);
         orderItems.forEach(uselessFront.product);
         let orderTotalPrice = orderItems.reduce(
-          (sum, item) => sum + (
-            Number(item.quantity)
-            * Number(item.price)
-            * Number(item.recomendedMinimalSize)
-          ),
+          (sum, item) => sum + Number(item.amount),
           0
         )
 
