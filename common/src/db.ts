@@ -206,7 +206,8 @@ export class DBSession {
       `SELECT
         item.${aliasedAs(FIELDS.orderItems.product, "productID")},
         item.${aliasedAs(FIELDS.orderItems.quantity)},
-        item.${aliasedAs(FIELDS.orderItems.taxedPrice, "price")},
+        item.${aliasedAs(FIELDS.orderItems.discountedPrice, "discountedPrice")},
+        item.${aliasedAs(FIELDS.orderItems.price, "price")},
         subCategory.${aliasedAs(FIELDS.productSubCategory.name, "subCategoryName")},
         product.${aliasedAs(FIELDS.products.photo)},
         product.${aliasedAs(FIELDS.products.article)},
@@ -267,7 +268,7 @@ export class DBSession {
     paymentMethod: typeof VALUES.orders.paymentMethod[keyof typeof VALUES.orders.paymentMethod],
     deliveryMethod: typeof VALUES.orders.deliveryMethod[keyof typeof VALUES.orders.deliveryMethod],
     products: {[id: number]: {quantity: number}}
-  ): Promise<{orderID: number, items: [RowDataPacket, typeof products[keyof typeof products]][]}> {
+  ): Promise<{orderID: number, itemIDs: number[], products: [RowDataPacket, typeof products[keyof typeof products]][]}> {
     const [insertResult] = await this.conn.query(
       `INSERT INTO ${ENTITIES.orders}(
         parent_id,
@@ -379,7 +380,7 @@ export class DBSession {
       [
         fetchedProducts.map(
           ([product, data], i) => {
-            let itemID = insertOrderItemsResult[i];
+            let itemID = insertOrderItemsResult[i].insertId;
             return [
               [itemID, FIELDS_RAW.orderItems.product, product.id],
               [itemID, FIELDS_RAW.orderItems.category, product[FIELDS.products.category]],
@@ -391,7 +392,11 @@ export class DBSession {
     );
 
     await this.conn.commit();
-    return {orderID: orderID, items: fetchedProducts};
+    return {
+      orderID: orderID,
+      itemIDs: insertOrderItemsResult.map((i) => i.insertId),
+      products: fetchedProducts
+    };
   }
 
   public async updateClientData(
@@ -425,6 +430,14 @@ export class DBSession {
   public async fetchOrderItems(orderID: number): Promise<RowDataPacket[]> {
     const [items] = await this.conn.execute(
       `SELECT * FROM ${ENTITIES.orderItems} WHERE parent_item_id = ?`,
+      [orderID]
+    ) as RowDataPacket[][];
+    return items;
+  }
+
+  public async fetchOrderItemsIDs(orderID: number): Promise<RowDataPacket[]> {
+    const [items] = await this.conn.execute(
+      `SELECT id FROM ${ENTITIES.orderItems} WHERE parent_item_id = ?`,
       [orderID]
     ) as RowDataPacket[][];
     return items;

@@ -337,7 +337,7 @@ app.post(
           personalDiscount = Number(personalDiscountSrc);
         }
       }
-      var {orderID, items} = await session.createOrder(
+      var orderCreationResult = await session.createOrder(
         ORDER_PLACEHOLDER,
         client.id,
         phone,
@@ -358,7 +358,10 @@ app.post(
           }
         ))
       );
-      await spruton.touch(ENTITIES_RAW.orders, orderID);
+      orderCreationResult.itemIDs.map(
+        (i) => spruton.touch(ENTITIES_RAW.orderItems, i)
+      );
+      await spruton.touch(ENTITIES_RAW.orders, orderCreationResult.orderID);
 
       await session.updateClientData(
         client.id,
@@ -369,21 +372,21 @@ app.post(
         inn
       );
 
-      var orderMetaData = await session.fetchOrder(orderID);
+      var orderMetaData = await session.fetchOrder(orderCreationResult.orderID);
     }
 
   if (req.ctx.isTg) {
     setTimeout(
       async () => {
         try {
-          var orderMetaExtra = await spruton.fetchOrder(orderID);
+          var orderMetaExtra = await spruton.fetchOrder(orderCreationResult.orderID);
         } catch (err) {
           console.error(err);
           console.error(err.stack);
           return;
         }
         let data: NewOrder = {
-          orderID: orderID,
+          orderID: orderCreationResult.orderID,
           client: {
             tgID: client[FIELDS.clients.tgID],
             fullName: name,
@@ -395,7 +398,7 @@ app.post(
             personalDiscount: personalDiscount
           },
           src: req.body,
-          items: items,
+          items: orderCreationResult.products,
           orderMeta: orderMetaData,
           orderMetaExtra: orderMetaExtra
         }
@@ -405,7 +408,7 @@ app.post(
     );
   }
 
-  return res.status(200).json({status: "ok", orderID: orderID});
+  return res.status(200).json({status: "ok", orderID: orderCreationResult.orderID});
 });
 
 class TBankBasicValidationError extends Error {
@@ -455,9 +458,9 @@ app.post(
         (item) => {
           return {
             Name: item[FIELDS.orderItems.article],
-            Price: Number(item[FIELDS.orderItems.price]) * 100,
+            Price: Number(item[FIELDS.orderItems.discountedPrice]) * 100,
             Quantity: Number(item[FIELDS.orderItems.quantity]),
-            Amount: Number(item[FIELDS.orderItems.price]) * Number(item[FIELDS.orderItems.quantity]) * 100,
+            Amount: Number(item[FIELDS.orderItems.discountedPrice]) * Number(item[FIELDS.orderItems.quantity]) * 100,
             Tax: TAX_TRANSLATION[item[FIELDS.orderItems.tax]]
           };
         }

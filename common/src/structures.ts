@@ -89,16 +89,17 @@ export const FIELDS_RAW = {
   orderItems: {
     product: 242,
     quantity: 245,
-    price: 246,
+    discountedPrice: 246,
     boxesCount: 248,
     boxSize: 249,
     category: 250,
     recomendedMinimalSize: 305,
     tax: 363,
-    taxedPrice: 364,
+    _taxedPrice: 364,
     amount: 366,
     packageSize: 385,
     article: 399,
+    price: 638
   },
   prices: {
     price: 313,
