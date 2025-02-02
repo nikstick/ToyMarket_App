@@ -193,7 +193,7 @@ export class DBSession {
 
   public async fetchClientOrders(clientID: number): Promise<RowDataPacket[]> {
     const [orders] = await this.conn.execute(
-      `SELECT id, date_added FROM ${ENTITIES.orders}
+      `SELECT id, date_added, ${aliasedAs(FIELDS.orders.personalDiscount)} FROM ${ENTITIES.orders}
       WHERE ${FIELDS.orders.client} = ?
       ORDER BY date_added DESC`,
       [clientID]

@@ -264,7 +264,8 @@ app.post(
           orderId: order.id,
           orderDate: order.date_added,
           products: orderItems,
-          total: orderTotalPrice
+          total: orderTotalPrice,
+          discount: order.personalDiscount
         });
       }
     }
