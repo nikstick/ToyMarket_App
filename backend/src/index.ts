@@ -215,6 +215,14 @@ app.get("/api/product_image/:id/:file", productImage);
 app.get("/api/image/:id/:file", productImage);
 
 app.get(
+  "/api/product_other_image/:id/:file",
+  async (req: Request, res: Response) => {
+    const { id, file } = req.params;
+    spruton.fileExportDownload(ENTITIES_RAW.products, Number(id), FIELDS_RAW.products.otherPhotos, file, res);
+  }
+)
+
+app.get(
   "/api/news_image/:id/:file",
   async (req: Request, res: Response) => {
     const { id, file } = req.params;
