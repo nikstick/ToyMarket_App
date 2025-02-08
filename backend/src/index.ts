@@ -270,31 +270,17 @@ app.post(
       }
     }
 
-    if (ordersView && ordersView[0]) {
-      res.json({
-        data: {
-          name: client[FIELDS.clients.fullName],
-          phone: client[FIELDS.clients.ruPhoneNumber],
-          address: client[FIELDS.clients.address],
-          company: client[FIELDS.clients.companyName],
-          inn: client[FIELDS.clients.inn],
-          orders: ordersView,
-          personalDiscount: client[FIELDS.clients.personalDiscount]
-        },
-      });
-    } else {
-      // IDK why, really
-      res.json({
-        data: {
-          name: "",
-          phone: "",
-          address: "",
-          company: "",
-          inn: "",
-          orders: [],
-        },
-      });
-    }
+    res.json({
+      data: {
+        name: client[FIELDS.clients.fullName],
+        phone: client[FIELDS.clients.ruPhoneNumber],
+        address: client[FIELDS.clients.address],
+        company: client[FIELDS.clients.companyName],
+        inn: client[FIELDS.clients.inn],
+        orders: ordersView,
+        personalDiscount: client[FIELDS.clients.personalDiscount]
+      },
+    });
   }
 );
 
