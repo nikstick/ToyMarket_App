@@ -8,7 +8,6 @@ export const ENTITIES_RAW = {
   orderItems: 28,
   clients: 29,
   news: 30,
-  prices: 31,
   productSubCategory: 36,
   tradeMarks: 37,
   shoeSizes: 38,
@@ -33,7 +32,6 @@ export const FIELDS_RAW = {
   news: {
     text: 295,
     img: 296,
-    url: 297,
     publishDate: 301,  // FIXME: MISSING!
   },
   products: {
@@ -90,9 +88,6 @@ export const FIELDS_RAW = {
     product: 242,
     quantity: 245,
     discountedPrice: 246,
-    boxesCount: 248,
-    boxSize: 249,
-    category: 250,
     recomendedMinimalSize: 305,
     tax: 363,
     _taxedPrice: 364,
@@ -100,14 +95,6 @@ export const FIELDS_RAW = {
     packageSize: 385,
     article: 399,
     price: 638
-  },
-  prices: {
-    price: 313,
-    isCurrent: 314,
-    discount: 321,
-    discountedPrice: 322,
-    article: 373,
-    code: 374
   },
   productSubCategory: {
     name: 422,

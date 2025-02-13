@@ -343,9 +343,6 @@ export class DBSession {
         ${FIELDS.orderItems.price},
         ${FIELDS.orderItems.recomendedMinimalSize},
         ${FIELDS.orderItems.amount},
-        ${FIELDS.orderItems.boxesCount},
-        ${FIELDS.orderItems.boxSize},
-        ${FIELDS.orderItems.category},
         ${FIELDS.orderItems.tax},
         ${FIELDS.orderItems.packageSize},
         ${FIELDS.orderItems.article}
@@ -365,9 +362,6 @@ export class DBSession {
             product[FIELDS.products.discountedPrice],
             product[FIELDS.products.recomendedMinimalSize],
             product[FIELDS.products.discountedPrice] * data.quantity,
-            (new Decimal(data.quantity)).div(product[FIELDS.products.boxSize]).toFixed(6),
-            product[FIELDS.products.boxSize],
-            product[FIELDS.products.category],  // FIXME: CATEGORY SHOULD BE TRANSLATED
             product[FIELDS.products.tax],
             product[FIELDS.products.packageSize],
             product[FIELDS.products.article]
@@ -384,7 +378,6 @@ export class DBSession {
             let itemID = insertOrderItemsResult[i].insertId;
             return [
               [itemID, FIELDS_RAW.orderItems.product, product.id],
-              [itemID, FIELDS_RAW.orderItems.category, product[FIELDS.products.category]],
               [itemID, FIELDS_RAW.orderItems.tax, product[FIELDS.products.tax]]
             ];
           }
