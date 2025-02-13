@@ -192,7 +192,9 @@ app.use(
       } else if (exc instanceof BadAuth) {
         return res.status(401).send("Auth error");
       } else {
-        throw exc;
+        console.error(exc);
+        console.error(exc.message);
+        return res.status(401).send("Auth error");
       }
     }
     req.ctx = ctx;

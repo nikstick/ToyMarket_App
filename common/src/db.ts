@@ -67,9 +67,11 @@ export class DBSession {
     conn.on(
       "error",
       (err: ErrorPacketParams) => {
-        if (err.code == "PROTOCOL_CONNECTION_LOST" && err.message.trim() != "Connection lost: The server closed the connection.") {
+        if (err.code == "PROTOCOL_CONNECTION_LOST" && !err.message.trim().startsWith("Connection lost: The server closed the connection")) {
           console.error(`DB CONNECTION ERROR: ${err.message}`);
           exit(1);
+        } else {
+          console.error(err.message);
         }
       }
     )
