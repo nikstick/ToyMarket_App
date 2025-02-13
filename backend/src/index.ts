@@ -351,8 +351,10 @@ app.post(
           }
         ))
       );
-      orderCreationResult.itemIDs.map(
-        (i) => spruton.touch(ENTITIES_RAW.orderItems, i)
+      await Promise.all(
+        orderCreationResult.itemIDs.map(
+          async (i) => await spruton.touch(ENTITIES_RAW.orderItems, i)
+        )
       );
       await spruton.touch(ENTITIES_RAW.orders, orderCreationResult.orderID);
 
