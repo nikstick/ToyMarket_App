@@ -81,7 +81,8 @@ export const FIELDS_RAW = {
     taxedAmount: 327,
     status: 337,
     personalDiscount: 341,
-    taxedDiscountedAmount: 368,
+    taxedDiscountedRemoteAmount: 361,
+    taxedDiscountedCashAmount: 368,
     comment: 369,
   },
   orderItems: {
