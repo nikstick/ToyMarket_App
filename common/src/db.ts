@@ -331,53 +331,56 @@ export class DBSession {
       (await this.fetchProducts(Object.entries(products).map((product, i) => Number(product[0]))))
       .map((row) => [row, products[row.id]])
     );
-    let insertOrderItemsResult = await this.conn.query(
-      `INSERT INTO ${ENTITIES.orderItems}(
-        parent_id,
-        parent_item_id,
-        linked_id,
-        date_added,
-        date_updated,
-        created_by,
-        sort_order,
-        ${FIELDS.orderItems.product},
-        ${FIELDS.orderItems.quantity},
-        ${FIELDS.orderItems.price},
-        ${FIELDS.orderItems.recomendedMinimalSize},
-        ${FIELDS.orderItems.amount},
-        ${FIELDS.orderItems.tax},
-        ${FIELDS.orderItems.packageSize},
-        ${FIELDS.orderItems.article}
-      ) VALUES ?`,
-      [
-        fetchedProducts.map(
-          ([product, data], i) => [
-            0,
-            orderID,
-            0,
-            Date.now() / 1000,
-            Date.now() / 1000,
-            1,
-            0,
-            product.id,
-            data.quantity,
-            product[FIELDS.products.discountedPrice],
-            product[FIELDS.products.recomendedMinimalSize],
-            product[FIELDS.products.discountedPrice] * data.quantity,
-            product[FIELDS.products.tax],
-            product[FIELDS.products.packageSize],
-            product[FIELDS.products.article]
-          ]
-        )
-      ]
-    ) as ResultSetHeader[];
+    let insertOrderItemsIDs = await Promise.all(
+      fetchedProducts.map(
+        async ([product, data], i) => {
+          let [insertResult] = await this.conn.query(
+            `INSERT INTO ${ENTITIES.orderItems}(
+              parent_id,
+              parent_item_id,
+              linked_id,
+              date_added,
+              date_updated,
+              created_by,
+              sort_order,
+              ${FIELDS.orderItems.product},
+              ${FIELDS.orderItems.quantity},
+              ${FIELDS.orderItems.price},
+              ${FIELDS.orderItems.recomendedMinimalSize},
+              ${FIELDS.orderItems.amount},
+              ${FIELDS.orderItems.tax},
+              ${FIELDS.orderItems.packageSize},
+              ${FIELDS.orderItems.article}
+            ) VALUES ?`,
+            [[[
+              0,
+              orderID,
+              0,
+              Date.now() / 1000,
+              Date.now() / 1000,
+              1,
+              0,
+              product.id,
+              data.quantity,
+              product[FIELDS.products.discountedPrice],
+              product[FIELDS.products.recomendedMinimalSize],
+              product[FIELDS.products.discountedPrice] * data.quantity,
+              product[FIELDS.products.tax],
+              product[FIELDS.products.packageSize],
+              product[FIELDS.products.article]
+            ]]]
+            ) as ResultSetHeader[];
+            return insertResult.insertId;
+        }
+      )
+    );
 
     await this.conn.query(
       `INSERT INTO ${ENTITIES.orderItems}_values (items_id, fields_id, value) VALUES ?`,
       [
         fetchedProducts.map(
           ([product, data], i) => {
-            let itemID = insertOrderItemsResult[i].insertId;
+            let itemID = insertOrderItemsIDs[i];
             return [
               [itemID, FIELDS_RAW.orderItems.product, product.id],
               [itemID, FIELDS_RAW.orderItems.tax, product[FIELDS.products.tax]]
@@ -390,7 +393,7 @@ export class DBSession {
     await this.conn.commit();
     return {
       orderID: orderID,
-      itemIDs: insertOrderItemsResult.map((i) => i.insertId),
+      itemIDs: insertOrderItemsIDs,
       products: fetchedProducts
     };
   }
