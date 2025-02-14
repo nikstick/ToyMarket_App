@@ -19,4 +19,4 @@
 <%= item[it.FIELDS.products.article] %> - <%= item[it.FIELDS.products.discountedPrice] %> р/шт. - <%= data.quantity %> шт. - <%= amount %> руб.
 <%- }) %>
 
-<b>Итого:</b> <%= fullPrice %> руб.<% if (it.client.personalDiscount != 0) { %> - <%= it.client.personalDiscount %>% = <%= it.orderMetaExtra[`${it.FIELDS_RAW.orders.taxedDiscountedRemoteAmount}`] %><% } %>
+<b>Итого:</b> <%= fullPrice %> руб.<% if (it.client.personalDiscount != 0) { %> - <%= it.client.personalDiscount %>% = <%= it.parse.priceNum(it.orderMetaExtra[`${it.FIELDS_RAW.orders.taxedDiscountedRemoteAmount}`]) + it.parse.priceNum(it.orderMetaExtra[`${it.FIELDS_RAW.orders.taxedDiscountedCashAmount}`]) %> руб.<% } %>

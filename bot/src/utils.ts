@@ -9,13 +9,22 @@ import { ENTITIES, ENTITIES_RAW, FIELDS, FIELDS_RAW } from "common/dist/structur
 
 export const cacheStorage = new IgnorableCacheContainer(new MemoryStorage());
 
+export class ParsingUtils {
+  public static priceNum(value: string): Number {
+    const PATTERN = /([\d ]+(?:[,.]\d+)?)(\s+.+)?/;
+    let match = value.match(PATTERN);
+    return Number(match[1].replace(",", ".").replaceAll(" ", ""));
+  }
+}
+
 export class StaticUtils {
   static eta = new Eta({views: "./static/templates", autoEscape: false, autoTrim: false})
   static GLOBALS = {
     FIELDS: FIELDS,
     FIELDS_RAW: FIELDS_RAW,
     ENTITIES: ENTITIES,
-    ENTITIES_RAW: ENTITIES_RAW
+    ENTITIES_RAW: ENTITIES_RAW,
+    parse: ParsingUtils
   } as const;
 
   @Cache(cacheStorage, {isCachedForever: true})
