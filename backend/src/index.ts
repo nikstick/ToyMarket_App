@@ -254,6 +254,25 @@ app.get(
   }
 );
 
+app.get(
+  "/api/product",
+  async (req: Request, res: Response) => {
+    let model = (req.query.model || null);
+    let productID = (req.query.id || null);
+    assert((model == null) != (productID == null));
+    let data: object;
+    for await (const session of DBSession.ctx()) {
+      if (model != null) {
+        assert(typeof model == "string");
+        data = await session.fetchProductsByModel(model as string);
+      } else {
+        data = await session.fetchProducts([Number(productID)]);
+      }
+    }
+    return res.json({data: data});
+  }
+);
+
 app.post(
   "/api/user/get",
   async (req: Request, res: Response) => {

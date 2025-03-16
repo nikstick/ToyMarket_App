@@ -128,7 +128,15 @@ export class DBSession {
     return users;
   }
 
-  public async fetchProductsView(): Promise<RowDataPacket[]> {
+  public async fetchProductsByModel(model: string): Promise<RowDataPacket[]> {
+    const [result] = await this.conn.execute(`
+      SELECT id FROM ${ENTITIES.products}
+      WHERE ${FIELDS.products.modelName} = ?
+    `, model) as RowDataPacket[][];
+    return await this.fetchProductsView(result.map((product) => product.id));
+  }
+
+  public async fetchProductsView(ids: number[] | null = null): Promise<RowDataPacket[]> {
     const [products] = await this.conn.execute(`
       SELECT
         product.id AS id,
@@ -172,8 +180,10 @@ export class DBSession {
       LEFT JOIN ${ENTITIES.tradeMarks} AS tradeMark ON tradeMark.id = product.${FIELDS.products.tradeMark}
       LEFT JOIN ${ENTITIES.shoeSizes} AS shoeSize ON shoeSize.id = product.${FIELDS.products.shoeSize}
       WHERE product.${FIELDS.products.status} != ${VALUES.products.status.inactive}
+      ${ids == null ? "" : "AND product.id IN ?"}
       ORDER BY category.id;
-    `) as RowDataPacket[][];
+      `, (ids == null ? undefined : [[ids]])
+    ) as RowDataPacket[][];
     return products.map(
       (product) => {
         product.otherPhotos = (product.otherPhotos ? product.otherPhotos.split(",") : []);

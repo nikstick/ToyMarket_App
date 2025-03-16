@@ -8,7 +8,7 @@
   "scripts": {
     "build": "yarn tsc --build --force --verbose",
     "linking": "yarn workspaces foreach --all link",
-    "prod": "python3 pack.py"
+    "prod": "python pack.py"
   },
   "version": "1.0.0",
   "packageManager": "yarn@4.4.1",
