@@ -260,15 +260,16 @@ app.get(
     let model = (req.query.model || null);
     let productID = (req.query.id || null);
     assert((model == null) != (productID == null));
-    let data: object;
+    let data: object[];
     for await (const session of DBSession.ctx()) {
       if (model != null) {
         assert(typeof model == "string");
-        data = await session.fetchProductsByModel(model as string);
+        data = await session.fetchProductsViewByModel(model as string);
       } else {
-        data = await session.fetchProducts([Number(productID)]);
+        data = await session.fetchProductsView([Number(productID)]);
       }
     }
+    data.forEach((product) => uselessFront.product(product))
     return res.json({data: data});
   }
 );

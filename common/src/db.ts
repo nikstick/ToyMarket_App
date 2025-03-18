@@ -128,16 +128,16 @@ export class DBSession {
     return users;
   }
 
-  public async fetchProductsByModel(model: string): Promise<RowDataPacket[]> {
+  public async fetchProductsViewByModel(model: string): Promise<RowDataPacket[]> {
     const [result] = await this.conn.execute(`
       SELECT id FROM ${ENTITIES.products}
       WHERE ${FIELDS.products.modelName} = ?
-    `, model) as RowDataPacket[][];
+    `, [model]) as RowDataPacket[][];
     return await this.fetchProductsView(result.map((product) => product.id));
   }
 
   public async fetchProductsView(ids: number[] | null = null): Promise<RowDataPacket[]> {
-    const [products] = await this.conn.execute(`
+    const [products] = await this.conn.query(`
       SELECT
         product.id AS id,
         category.id AS categoryID,
