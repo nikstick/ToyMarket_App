@@ -2,12 +2,13 @@ import { mapObj } from "./utils.js";
 
 export const ENTITIES_RAW = {
   users: 1,
-  productCategories: 25,
+  productType: 25,
   products: 26,
   orders: 27,
   orderItems: 28,
   clients: 29,
   news: 30,
+  productCategory: 35,
   productSubCategory: 36,
   tradeMarks: 37,
   shoeSizes: 38,
@@ -39,7 +40,7 @@ export const FIELDS_RAW = {
     article: 221,
     boxSize: 222,
     inStock: 223,
-    category: 225,
+    productType: 225,
     description: 274,
     review: 275,
     isNew: 277,
@@ -54,6 +55,7 @@ export const FIELDS_RAW = {
     finalPriceServiced: 401,
     modelName: 423,
     tradeMark: 425,
+    category: 432,
     textColor: 433,
     shoeSize: 434,
     price: 435,
@@ -65,7 +67,7 @@ export const FIELDS_RAW = {
     subCategory: 456,
     rutubeReview: 461,
   },
-  productCategories: {
+  productType: {
     name: 213
   },
   orders: {
@@ -95,7 +97,10 @@ export const FIELDS_RAW = {
     amount: 366,
     packageSize: 385,
     article: 399,
-    price: 638
+    price: 638,
+  },
+  productCategory: {
+    name: 421,
   },
   productSubCategory: {
     name: 422,

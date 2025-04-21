@@ -25,6 +25,14 @@ interface DBConfigSchema {
   }
 }
 
+export function choicesOf(field: string): string {
+  return `(
+    SELECT CONCAT("[", GROUP_CONCAT(QUOTE(name) SEPARATOR ","), "]")
+    FROM app_global_lists_choices
+    WHERE FIND_IN_SET(app_global_lists_choices.id, ${field})
+  )`;
+}
+
 export class PoolManager<ConfigSchemaT extends DBConfigSchema> {
   private static instance: PoolManager<DBConfigSchema> = null;
 
@@ -64,17 +72,20 @@ export class DBSession {
 
   constructor(conn: PoolConnection) {
     this.conn = conn;
-    conn.on(
-      "error",
-      (err: ErrorPacketParams) => {
-        if (err.code == "PROTOCOL_CONNECTION_LOST" && !err.message.trim().startsWith("Connection lost: The server closed the connection")) {
-          console.error(`DB CONNECTION ERROR: ${err.message}`);
-          exit(1);
-        } else {
-          console.error(err.message);
-        }
-      }
-    )
+    conn.removeListener("error", DBSession.errorHandler);
+    conn.on("error", DBSession.errorHandler);
+  }
+
+  public static errorHandler(err: ErrorPacketParams) {
+    if (
+      err.code == "PROTOCOL_CONNECTION_LOST"
+      && !err.message.trim().startsWith("Connection lost: The server closed the connection")
+    ) {
+      console.error(`DB CONNECTION ERROR: ${err.message}`);
+      exit(1);
+    } else {
+      console.error(err.message);
+    }
   }
 
   // works like ctx manager with for..of
@@ -140,8 +151,11 @@ export class DBSession {
     const [products] = await this.conn.query(`
       SELECT
         product.id AS id,
+        productType.id as productTypeID,
+        productType.${aliasedAs(FIELDS.productType.name, "productTypeName")},
         category.id AS categoryID,
-        category.${aliasedAs(FIELDS.productCategories.name, "categoryName")},
+        category.${aliasedAs(FIELDS.productCategory.name, "categoryName")},
+        subCategory.id AS subCategoryID,
         subCategory.${aliasedAs(FIELDS.productSubCategory.name, "subCategoryName")},
         product.${aliasedAs(FIELDS.products.photo)},
         product.${aliasedAs(FIELDS.products.article)},
@@ -154,7 +168,8 @@ export class DBSession {
         product.${aliasedAs(FIELDS.products.isNew)},
         product.${aliasedAs(FIELDS.products.description)},
         product.${aliasedAs(FIELDS.products.review)},
-        product.${aliasedAs(FIELDS.products.keywords)},
+        product.${aliasedAs(FIELDS.products.keywords, "keywordsIDs")},
+        ${choicesOf("keywordsIDs")} AS keywords,
         product.${aliasedAs(FIELDS.products.otherPhotos)},
         product.${aliasedAs(FIELDS.products.rutubeReview)},
         product.${aliasedAs(FIELDS.products.textColor)},
@@ -175,7 +190,8 @@ export class DBSession {
         shoeSize.${aliasedAs(FIELDS.shoeSizes.ruSize, "shoeSizeRu")},
         shoeSize.${aliasedAs(FIELDS.shoeSizes.euSize, "shoeSizeEu")}
       FROM ${ENTITIES.products} AS product
-      LEFT JOIN ${ENTITIES.productCategories} AS category ON category.id = product.${FIELDS.products.category}
+      LEFT JOIN ${ENTITIES.productType} AS productType ON productType.id = product.${FIELDS.products.productType}
+      LEFT JOIN ${ENTITIES.productCategory} AS category ON category.id = product.${FIELDS.products.category}
       LEFT JOIN ${ENTITIES.productSubCategory} AS subCategory ON subCategory.id = product.${FIELDS.products.subCategory}
       LEFT JOIN ${ENTITIES.tradeMarks} AS tradeMark ON tradeMark.id = product.${FIELDS.products.tradeMark}
       LEFT JOIN ${ENTITIES.shoeSizes} AS shoeSize ON shoeSize.id = product.${FIELDS.products.shoeSize}
@@ -187,7 +203,8 @@ export class DBSession {
     return products.map(
       (product) => {
         product.otherPhotos = (product.otherPhotos ? product.otherPhotos.split(",") : []);
-        product.keywords = (product.keywords ? product.keywords.split(",") : []);
+        product.keywordsIDs = (product.keywordsIDs ? product.keywordsIDs.split(",") : []);
+        product.keywords = (product.keywords ? JSON.parse(product.keywords.replaceAll(`'`, `"`)) : []);
         return product;
       }
     );
@@ -231,7 +248,8 @@ export class DBSession {
         product.${aliasedAs(FIELDS.products.isNew)},
         product.${aliasedAs(FIELDS.products.description)},
         product.${aliasedAs(FIELDS.products.review)},
-        product.${aliasedAs(FIELDS.products.keywords)},
+        product.${aliasedAs(FIELDS.products.keywords, "keywordsIDs")},
+        ${choicesOf("keywordsIDs")} AS keywords,
         product.${aliasedAs(FIELDS.products.otherPhotos)},
         product.${aliasedAs(FIELDS.products.rutubeReview)},
         product.${aliasedAs(FIELDS.products.textColor)},
@@ -262,7 +280,8 @@ export class DBSession {
     return orderItems.map(
         (item) => {
             item.otherPhotos = (item.otherPhotos ? item.otherPhotos.split(",") : []);
-            item.keywords = (item.keywords ? item.keywords.split(",") : []);
+            item.keywordsIDs = (item.keywordsIDs ? item.keywordsIDs.split(",") : []);
+            item.keywords = (item.keywords ? JSON.parse(item.keywords.replaceAll(`'`, `"`)) : []);
             return item;
         }
     );
