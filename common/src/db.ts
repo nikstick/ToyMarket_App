@@ -27,7 +27,7 @@ interface DBConfigSchema {
 
 export function choicesOf(field: string): string {
   return `(
-    SELECT JSON_ARRAYAGG(name)
+    SELECT IFNULL(JSON_ARRAYAGG(name), JSON_ARRAY())
     FROM app_global_lists_choices
     WHERE FIND_IN_SET(app_global_lists_choices.id, ${field})
   )`;
@@ -204,7 +204,6 @@ export class DBSession {
       (product) => {
         product.otherPhotos = (product.otherPhotos ? product.otherPhotos.split(",") : []);
         product.keywordsIDs = (product.keywordsIDs ? product.keywordsIDs.split(",") : []);
-        product.keywords = (product.keywords ? JSON.parse(product.keywords) : []);
         return product;
       }
     );
@@ -281,7 +280,6 @@ export class DBSession {
         (item) => {
             item.otherPhotos = (item.otherPhotos ? item.otherPhotos.split(",") : []);
             item.keywordsIDs = (item.keywordsIDs ? item.keywordsIDs.split(",") : []);
-            item.keywords = (item.keywords ? JSON.parse(item.keywords) : []);
             return item;
         }
     );
