@@ -248,6 +248,16 @@ app.get(
 );
 
 app.get(
+  "/api/categories",
+  async (req: Request, res: Response) => {
+    for await (const session of DBSession.ctx()) {
+      let data = await session.fetchCategoriesView();
+      return res.json({"data": data});
+    }
+  }
+);
+
+app.get(
   "/api/products",
   async (req: Request, res: Response) => {
     return res.json({data: await storage.getProductsByCategoryView()});
