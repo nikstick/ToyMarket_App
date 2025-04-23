@@ -15,5 +15,8 @@
   "devDependencies": {
     "@types/node": "^22.5.4",
     "typescript": "^5.5.4"
+  },
+  "dependencies": {
+    "express-validator": "^7.2.1"
   }
 }

@@ -44,7 +44,7 @@ export const FIELDS_RAW = {
     description: 274,
     review: 275,
     isNew: 277,
-    status: 278,
+    isSiteViewable: 278,
     otherPhotos: 288,
     recomendedMinimalSize: 306,
     recomendedMinimalSizeBoxParts: 315,
@@ -125,10 +125,6 @@ export const VALUES = {
     },
   },
   products: {
-    status: {
-      active: 70,
-      inactive: 71,
-    },
     producingCountry: {
       china: 53,
       russia: 54,

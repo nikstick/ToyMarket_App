@@ -3,7 +3,7 @@ import type { RowDataPacket } from "mysql2/promise";
 import { ENTITIES, FIELDS, FIELDS_RAW } from "common/dist/structures.js";
 import { PoolManager, DBSession as DBSessionOrigin } from "common/dist/db.js";
 import { config } from "common/dist/config.js";
-import { aliasedAs } from "common/dist/utils.js";
+import { undef } from "common/dist/utils.js";
 
 import { ORDER_PLACEHOLDER } from "./structures.js";
 
@@ -24,13 +24,6 @@ export class DBSession extends DBSessionOrigin {
     } else {
       return null;
     }
-  }
-
-  public async fetchCategoriesView(): Promise<RowDataPacket[]> {
-    const [rows] = await this.conn.execute(
-      `SELECT * FROM external_product_categories_list_view`
-    ) as RowDataPacket[][];
-    return rows;
   }
 }
 
@@ -58,51 +51,8 @@ PoolManager.get(
           END
       `;
       await conn.query(query);
-
-      query = `
-        CREATE OR REPLACE VIEW external_product_sub_categories_list_view (id, name, types, category_id)
-        AS SELECT
-          sub_categories_t.id,
-          sub_categories_t.${aliasedAs(FIELDS.productSubCategory.name, "name")},
-          (
-            SELECT IFNULL(
-              JSON_ARRAYAGG(
-                JSON_OBJECT(
-                  "id", types_t.id,
-                  "name", types_t.${FIELDS.productType.name}
-                )
-              ), JSON_ARRAY()
-            ) FROM ${ENTITIES.productType} AS types_t
-            WHERE types_t.parent_item_id = sub_categories_t.id
-          ),
-          sub_categories_t.parent_item_id AS category_id
-        FROM ${ENTITIES.productSubCategory} AS sub_categories_t;
-      `;
-      await conn.query(query);
-      query = `
-        CREATE OR REPLACE VIEW external_product_categories_list_view (id, name, sub_categories)
-        AS SELECT
-          categories_t.id,
-          categories_t.${aliasedAs(FIELDS.productCategory.name, "name")},
-          (
-            SELECT IFNULL(
-              JSON_ARRAYAGG(
-                JSON_INSERT(
-                  JSON_OBJECT(
-                    "id", sub_categories_t.id,
-                    "name", sub_categories_t.name
-                  ),
-                  "$.types", sub_categories_t.types
-                )
-              ), JSON_ARRAY()
-            ) FROM external_product_sub_categories_list_view AS sub_categories_t
-            WHERE sub_categories_t.category_id = categories_t.id
-          )
-        FROM ${ENTITIES.productCategory} AS categories_t;
-      `;
-      await conn.query(query);
     } finally {
-      if (typeof conn !== "undefined") {
+      if (!undef(conn)) {
         conn.release();
       }
     }

@@ -5,7 +5,7 @@ import { IgnorableCacheContainer } from "common/dist/utils.js";
 
 export const cacheStorage = new IgnorableCacheContainer(new MemoryStorage());
 
-// useless patching objects for front compatability
+// useless patching of objects for front compatability
 export namespace uselessFront {
     export function product(obj): void {
       Object.assign(

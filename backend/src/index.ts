@@ -3,6 +3,7 @@ import { createHmac, createHash, randomUUID } from "node:crypto";
 
 import express, { type Request, type Response, type NextFunction } from "express";
 import "express-async-errors";
+import { matchedData, query, validationResult } from "express-validator";
 import cors from "cors";
 import bodyParser from "body-parser";
 import type { RowDataPacket } from "mysql2/promise";
@@ -10,11 +11,11 @@ import ipc from "node-ipc";
 import { Netmask } from "netmask";
 
 import { ENTITIES, ENTITIES_RAW, FIELDS, FIELDS_RAW, VALUES } from "common/dist/structures.js";
-import { assert, Elevate, makeASCIISafe } from "common/dist/utils.js";
+import { assert, Elevate, makeASCIISafe, undef } from "common/dist/utils.js";
 import type { NewOrder } from "common/dist/ipc.js";
 import { config } from "common/dist/config.js";
 
-import { spruton, storage, tinkoff } from "./controllers.js";
+import { spruton, tinkoff } from "./controllers.js";
 import { DBSession } from "./db.js";
 import { uselessFront } from "./utils.js";
 import { ORDER_PLACEHOLDER, valuesTranslation } from "./structures.js";
@@ -92,7 +93,7 @@ function checkAuth(secret: Buffer | string, data: {hash: string, [key: string]: 
 function validateTgUserObject(obj: Partial<TgUserObject>): TgUserObject {
   let names: string[] = ["last_name", "username", "photo_url"] as (keyof TgUserObject)[];
   for (let name of names) {
-    if (typeof obj[name] === "undefined") {
+    if (undef(obj[name])) {
       obj[name] = null;
     }
   }
@@ -107,11 +108,11 @@ app.use(
       assert(req.method != "GET", Elevate);
       assert(!req.path.startsWith("/hook"), Elevate);
       const auth = req.headers["authorization"];
-      assert(typeof auth !== "undefined", BadAuth);
+      assert(!undef(auth), BadAuth);
 
       if (["MiniApp", "WebApp"].includes(auth)) {
-        assert(typeof req.body !== "undefined", BadAuth);
-        assert(typeof req.body.tgUserData !== "undefined", BadAuth);
+        assert(!undef(req.body), BadAuth);
+        assert(!undef(req.body.tgUserData), BadAuth);
         const tgData = req.body.tgUserData;
 
         let user: TgUserObject;
@@ -124,7 +125,7 @@ app.use(
                 tgData
               ), BadAuth
             );
-            assert(typeof tgData.user !== "undefined", BadAuth);
+            assert(!undef(tgData.user), BadAuth);
             user = tgData.user;
             isMiniApp = true;
             break;
@@ -257,32 +258,82 @@ app.get(
   }
 );
 
-app.get(
-  "/api/products",
-  async (req: Request, res: Response) => {
-    return res.json({data: await storage.getProductsByCategoryView()});
+let productsValidation = [
+  query("model").isString(),
+  query("id").isInt(),
+  query("ids").isArray(),
+  query("ids.*").isInt(),
+  query("category").isInt(),
+  query("sub_category").isInt(),
+  query("type").isInt(),
+  query("limit").isInt({max: 200}).default(200),
+  query("offset").isInt().default(0),
+  query("random").isBoolean().default(false),
+  query("query").isString(),
+  query("exclude").isString().custom(async (v) => { assert(v == "new", "invalid value of 'exclude'"); })
+];
+async function products(req: Request, res: Response) {
+  const vResult = validationResult(req);
+  if (!vResult.isEmpty()) {
+    return res.send({errors: vResult.array()});
   }
-);
+  const validated = matchedData(req);
 
-app.get(
-  "/api/product",
-  async (req: Request, res: Response) => {
-    let model = (req.query.model || null);
-    let productID = (req.query.id || null);
-    assert((model == null) != (productID == null));
-    let data: object[];
-    for await (const session of DBSession.ctx()) {
-      if (model != null) {
-        assert(typeof model == "string");
-        data = await session.fetchProductsViewByModel(model as string);
-      } else {
-        data = await session.fetchProductsView([Number(productID)]);
+  let fetchParams: Parameters<DBSession["fetchProductsView"]>[0] = {
+    modelName: validated.model,
+    ids: validated.ids,
+    categoryID: validated.category,
+    subCategoryID: validated.sub_category,
+    productTypeID: validated.type,
+    limit: validated.limit,
+    random: validated.random,
+    extraFieldCondition: {}
+  };
+  if (!undef(validated.id)) {
+    if (undef(fetchParams.ids)) {
+      fetchParams.ids = [validated.id];
+    } else {
+      fetchParams.ids.push(validated.id);
+    }
+  }
+
+  const SEP_PATTERN = /(?<=(?<!\\)(?:\\\\)*);/;
+  const TAG_PATTERN = /^([A-Za-z_]+)=(?:(-?\d+)|"(.+)")$/;
+  let matchSet = [];
+  if (!undef(validated.query)) {
+    let params: string[] = validated.query.split(SEP_PATTERN);
+    params.map(
+      (v) => {
+        let match = v.match(TAG_PATTERN);
+        if (match == null) {
+          matchSet.push(v);
+        } else {
+          let k = match[1];
+          let v = (!undef(match[2]) ? match[2] : match[3]);
+          fetchParams.extraFieldCondition[k] = v;
+        }
+      }
+    );
+  }
+
+  // remove trash
+  Object.entries(fetchParams).forEach(
+    ([k, v]) => {
+      if (undef(v)) {
+        delete fetchParams[k];
       }
     }
-    data.forEach((product) => uselessFront.product(product))
-    return res.json({data: data});
+  )
+
+  for await (const session of DBSession.ctx()) {
+    var products = await session.fetchProductsView(fetchParams);
   }
-);
+  products.forEach(uselessFront.product);
+  return res.json({data: products});
+}
+
+app.get("/api/products", ...productsValidation, products);
+app.get("/api/product", ...productsValidation, products);
 
 app.post(
   "/api/user/get",
@@ -298,7 +349,7 @@ app.post(
         let orderTotalPrice = orderItems.reduce(
           (sum, item) => sum + Number(item.amount),
           0
-        )
+        );
 
         ordersView.push({
           orderId: order.id,
@@ -339,10 +390,10 @@ app.post(
       payBy,
       products,
     } = req.body;
-    if (typeof comment == "undefined") {
+    if (undef(comment)) {
       comment = "";
     }
-    if (typeof address == "undefined") {
+    if (undef(address)) {
       address = "";
     }
     if (!name || !phone) {
@@ -456,7 +507,7 @@ interface TBankBasicObj {
 type TBankBasic = TBankBasicObj | undefined;
 
 function tbankBasicValidator(method: string, result: TBankBasic): void {
-  assert(typeof result !== "undefined");
+  assert(!undef(result));
   if(!result.Success) {
     throw new TBankBasicValidationError(method, result.ErrorCode, result);
   }
@@ -467,7 +518,7 @@ app.post(
   "/api/payment/tbank/init",
   async (req: Request, res: Response) => {
     let { orderID } = req.body;
-    assert(typeof orderID !== "undefined");
+    assert(!undef(orderID));
 
     const TAX_TRANSLATION = {
       [VALUES.global.tax.none]: "none",
@@ -532,7 +583,7 @@ app.post(
   async (req: Request, res: Response) => {
     const { paymentID } = req.body;
     const result = await tinkoff.cancelPayment({PaymentId: paymentID});
-    assert(typeof result !== "undefined");
+    assert(!undef(result));
     tbankBasicValidator("cancel", result);
     return res.status(200).json({"error": false, orderID: result.OrderId});
   }
@@ -578,7 +629,7 @@ app.post(
   TBANK_NOTIFICATION_ROUTE,
   async (req: Request, res: Response) => {
     const data: TBankNotificationPayment = req.body;
-    assert(typeof data !== "undefined");
+    assert(!undef(data));
     assert(data.TerminalKey == config.get("tinkoff.terminalKey"));
     assert(tbankNetmaskCheck(req.headers["X-Forwarded-For"] as string));
     // FIXME: check crypto

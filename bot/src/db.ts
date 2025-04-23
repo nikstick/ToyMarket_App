@@ -2,7 +2,7 @@ import type { RowDataPacket } from "mysql2/promise";
 
 import { ENTITIES, FIELDS, VALUES } from "common/dist/structures.js";
 import { PoolManager, DBSession as DBSessionOrigin } from "common/dist/db.js";
-import { assert } from "common/dist/utils.js";
+import { assert, undef } from "common/dist/utils.js";
 import { config } from "common/dist/config.js";
 
 export enum NotificationType {
@@ -175,7 +175,7 @@ PoolManager.get(
       `);
       await conn.commit();
     } finally {
-      if (typeof conn !== "undefined") {
+      if (!undef(conn)) {
         conn.release();
       }
     }

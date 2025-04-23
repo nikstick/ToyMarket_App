@@ -1,6 +1,6 @@
 import { CacheContainer, ICachingOptions } from "node-ts-cache";
 
-import { CacheKeySpec, FIELD_ALIAS } from "./structures.js";
+import { CacheKeySpec } from "./structures.js";
 
 export function mapObj<T, R>(
   obj: {[key: string]: T},
@@ -30,13 +30,6 @@ export function assert(expr: boolean, error?: string | Error | ErrorType): void 
       throw new AssertionError(error as (string | undefined));
     }
   }
-}
-
-export function aliasedAs(field: string, alias?: string): string {
-  if (typeof alias === "undefined") {
-    alias = FIELD_ALIAS[field];
-  }
-  return `${field} AS ${alias}`
 }
 
 export class IgnorableCacheContainer extends CacheContainer {
@@ -72,4 +65,10 @@ export function makeASCIISafe(str: string): string {
     /[\u007F-\uFFFF]/g,
     (chr) => "\\u" + ("0000" + chr.charCodeAt(0).toString(16)).substr(-4)
   );
+}
+
+export type Unpartial<T> = T extends Partial<infer X> ? X : never;
+
+export function undef(v: any | undefined): boolean {
+  return (typeof v === "undefined");
 }

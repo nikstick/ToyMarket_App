@@ -12,8 +12,8 @@ import {
 import type { Config } from "convict";
 import { Decimal } from "decimal.js";
 
-import { ENTITIES_RAW, FIELDS_RAW, VALUES, ENTITIES, FIELDS } from "./structures.js";
-import { aliasedAs, assert, AssertionError } from "./utils.js";
+import { ENTITIES_RAW, FIELDS_RAW, VALUES, ENTITIES, FIELDS, FIELD_ALIAS } from "./structures.js";
+import { assert, AssertionError, undef, Unpartial } from "./utils.js";
 
 interface DBConfigSchema {
   db: {
@@ -25,12 +25,49 @@ interface DBConfigSchema {
   }
 }
 
+export function dynamicAlias(field: string, alias?: string, table?: string): [string, string] {
+  if (undef(alias)) {
+    alias = FIELD_ALIAS[field];
+  }
+  let aliasing;
+  if (alias == null) {
+    aliasing = "";
+  } else {
+    aliasing = `AS ${alias}`
+  }
+
+  if (!undef(table)) {
+    field = `${table}.${field}`;
+  }
+  return [field, aliasing];
+}
+
+export function aliasedAs(field: string, alias?: string, table?: string): string {
+  [field, alias] = dynamicAlias(field, alias, table);
+  return `${field} ${alias}`;
+}
+
 export function choicesOf(field: string): string {
   return `(
     SELECT IFNULL(JSON_ARRAYAGG(name), JSON_ARRAY())
     FROM app_global_lists_choices
     WHERE FIND_IN_SET(app_global_lists_choices.id, ${field})
   )`;
+}
+
+export function strBoolean(field: string, table?: string, alias?: string): string {
+  [field, alias] = dynamicAlias(field, alias, table);
+  return `IF(${field} = "true", true, IF(${field} = "false", false, NULL)) ${alias}`;
+}
+
+export function strForcedNull(field: string, table?: string, alias?: string): string {
+  [field, alias] = dynamicAlias(field, alias, table);
+  return `NULLIF(${field}, "") ${alias}`;
+}
+
+export function numForcedNull(field: string, table?: string, alias?: string): string {
+  [field, alias] = dynamicAlias(field, alias, table);
+  return `NULLIF(${field}, 0) ${alias}`;
 }
 
 export class PoolManager<ConfigSchemaT extends DBConfigSchema> {
@@ -63,7 +100,109 @@ export class PoolManager<ConfigSchemaT extends DBConfigSchema> {
     return PoolManager.instance;
   }
 
-  protected async init() {}
+  protected async init() {
+    const conn = await this.pool.getConnection();
+    try {
+      let query: string;
+      query = `
+        CREATE OR REPLACE VIEW external_product_sub_categories_list_view (id, name, types, category_id)
+        AS SELECT
+          sub_categories_t.id,
+          sub_categories_t.${aliasedAs(FIELDS.productSubCategory.name, "name")},
+          (
+            SELECT IFNULL(
+              JSON_ARRAYAGG(
+                JSON_OBJECT(
+                  "id", types_t.id,
+                  "name", types_t.${FIELDS.productType.name}
+                )
+              ), JSON_ARRAY()
+            ) FROM ${ENTITIES.productType} AS types_t
+            WHERE types_t.parent_item_id = sub_categories_t.id
+          ),
+          sub_categories_t.parent_item_id AS category_id
+        FROM ${ENTITIES.productSubCategory} AS sub_categories_t;
+      `;
+      await conn.query(query);
+      query = `
+        CREATE OR REPLACE VIEW external_product_categories_list_view (id, name, sub_categories)
+        AS SELECT
+          categories_t.id,
+          categories_t.${aliasedAs(FIELDS.productCategory.name, "name")},
+          (
+            SELECT IFNULL(
+              JSON_ARRAYAGG(
+                JSON_INSERT(
+                  JSON_OBJECT(
+                    "id", sub_categories_t.id,
+                    "name", sub_categories_t.name
+                  ),
+                  "$.types", sub_categories_t.types
+                )
+              ), JSON_ARRAY()
+            ) FROM external_product_sub_categories_list_view AS sub_categories_t
+            WHERE sub_categories_t.category_id = categories_t.id
+          )
+        FROM ${ENTITIES.productCategory} AS categories_t;
+      `;
+      await conn.query(query);
+
+      query = `
+        CREATE OR REPLACE VIEW external_products_view
+        AS SELECT
+          product.id AS id,
+          productType.id as productTypeID,
+          productType.${aliasedAs(FIELDS.productType.name, "productTypeName")},
+          category.id AS categoryID,
+          category.${aliasedAs(FIELDS.productCategory.name, "categoryName")},
+          subCategory.id AS subCategoryID,
+          subCategory.${aliasedAs(FIELDS.productSubCategory.name, "subCategoryName")},
+          product.${aliasedAs(FIELDS.products.photo)},
+          product.${aliasedAs(FIELDS.products.article)},
+          product.${aliasedAs(FIELDS.products.price)},
+          product.${aliasedAs(FIELDS.products.discountedPrice)},
+          product.${aliasedAs(FIELDS.products.recomendedMinimalSize)},
+          product.${aliasedAs(FIELDS.products.boxSize)},
+          product.${aliasedAs(FIELDS.products.packageSize)},
+          product.${aliasedAs(FIELDS.products.inStock)},
+          ${strBoolean(FIELDS.products.isNew, "product")},
+          product.${aliasedAs(FIELDS.products.description)},
+          product.${aliasedAs(FIELDS.products.review)},
+          product.${aliasedAs(FIELDS.products.keywords, "keywordsIDs")},
+          ${choicesOf("keywordsIDs")} AS keywords,
+          product.${aliasedAs(FIELDS.products.otherPhotos)},
+          ${strForcedNull(FIELDS.products.rutubeReview, "product")},
+          ${strForcedNull(FIELDS.products.textColor, "product")},
+          ${strBoolean(FIELDS.products.isSiteViewable, "product")},
+          ${strForcedNull(FIELDS.products.modelName, "product")},
+          ${numForcedNull(FIELDS.products.producingCountry, "product")},
+          ${numForcedNull(FIELDS.products.minKidAge, "product")},
+          ${numForcedNull(FIELDS.products.maxKidAge, "product")},
+          ${numForcedNull(FIELDS.products.kidGender, "product")},
+          ${numForcedNull(FIELDS.products.color, "product")},
+          tradeMark.id AS tradeMarkID,
+          tradeMark.${aliasedAs(FIELDS.tradeMarks.name, "tradeMarkName")},
+          tradeMark.${aliasedAs(FIELDS.tradeMarks.logo, "tradeMarkLogo")},
+          tradeMark.${aliasedAs(FIELDS.tradeMarks.about, "tradeMarkAbout")},
+          shoeSize.${aliasedAs(FIELDS.shoeSizes.name, "shoeSizeName")},
+          shoeSize.${aliasedAs(FIELDS.shoeSizes.cls, "shoeSizeClass")},
+          shoeSize.${aliasedAs(FIELDS.shoeSizes.length, "shoeSizeLength")},
+          shoeSize.${aliasedAs(FIELDS.shoeSizes.ruSize, "shoeSizeRu")},
+          shoeSize.${aliasedAs(FIELDS.shoeSizes.euSize, "shoeSizeEu")}
+        FROM ${ENTITIES.products} AS product
+        LEFT JOIN ${ENTITIES.productType} AS productType ON productType.id = product.${FIELDS.products.productType}
+        LEFT JOIN ${ENTITIES.productCategory} AS category ON category.id = product.${FIELDS.products.category}
+        LEFT JOIN ${ENTITIES.productSubCategory} AS subCategory ON subCategory.id = product.${FIELDS.products.subCategory}
+        LEFT JOIN ${ENTITIES.tradeMarks} AS tradeMark ON tradeMark.id = product.${FIELDS.products.tradeMark}
+        LEFT JOIN ${ENTITIES.shoeSizes} AS shoeSize ON shoeSize.id = product.${FIELDS.products.shoeSize};
+      `;
+      conn.query(query);
+    } finally {
+      if (!undef(conn)) {
+        conn.release();
+      }
+    }
+  }
 }
 
 type DBSessionNew<T> = { new (conn: PoolConnection): T }
@@ -94,7 +233,7 @@ export class DBSession {
       var conn = await PoolManager.get().pool.getConnection();
       yield new this(conn);
     } finally {
-      if (typeof conn !== "undefined") {
+      if (!undef(conn)) {
         conn.release();
       }
     }
@@ -139,66 +278,72 @@ export class DBSession {
     return users;
   }
 
-  public async fetchProductsViewByModel(model: string): Promise<RowDataPacket[]> {
-    const [result] = await this.conn.execute(`
-      SELECT id FROM ${ENTITIES.products}
-      WHERE ${FIELDS.products.modelName} = ?
-    `, [model]) as RowDataPacket[][];
-    return await this.fetchProductsView(result.map((product) => product.id));
-  }
-
-  public async fetchProductsView(ids: number[] | null = null): Promise<RowDataPacket[]> {
-    const [products] = await this.conn.query(`
-      SELECT
-        product.id AS id,
-        productType.id as productTypeID,
-        productType.${aliasedAs(FIELDS.productType.name, "productTypeName")},
-        category.id AS categoryID,
-        category.${aliasedAs(FIELDS.productCategory.name, "categoryName")},
-        subCategory.id AS subCategoryID,
-        subCategory.${aliasedAs(FIELDS.productSubCategory.name, "subCategoryName")},
-        product.${aliasedAs(FIELDS.products.photo)},
-        product.${aliasedAs(FIELDS.products.article)},
-        product.${aliasedAs(FIELDS.products.price)},
-        product.${aliasedAs(FIELDS.products.discountedPrice)},
-        product.${aliasedAs(FIELDS.products.recomendedMinimalSize)},
-        product.${aliasedAs(FIELDS.products.boxSize)},
-        product.${aliasedAs(FIELDS.products.packageSize)},
-        product.${aliasedAs(FIELDS.products.inStock)},
-        product.${aliasedAs(FIELDS.products.isNew)},
-        product.${aliasedAs(FIELDS.products.description)},
-        product.${aliasedAs(FIELDS.products.review)},
-        product.${aliasedAs(FIELDS.products.keywords, "keywordsIDs")},
-        ${choicesOf("keywordsIDs")} AS keywords,
-        product.${aliasedAs(FIELDS.products.otherPhotos)},
-        product.${aliasedAs(FIELDS.products.rutubeReview)},
-        product.${aliasedAs(FIELDS.products.textColor)},
-        product.${aliasedAs(FIELDS.products.status)},
-        product.${aliasedAs(FIELDS.products.modelName)},
-        product.${aliasedAs(FIELDS.products.producingCountry)},
-        product.${aliasedAs(FIELDS.products.minKidAge)},
-        product.${aliasedAs(FIELDS.products.maxKidAge)},
-        product.${aliasedAs(FIELDS.products.kidGender)},
-        product.${aliasedAs(FIELDS.products.color)},
-        tradeMark.id AS tradeMarkID,
-        tradeMark.${aliasedAs(FIELDS.tradeMarks.name, "tradeMarkName")},
-        tradeMark.${aliasedAs(FIELDS.tradeMarks.logo, "tradeMarkLogo")},
-        tradeMark.${aliasedAs(FIELDS.tradeMarks.about, "tradeMarkAbout")},
-        shoeSize.${aliasedAs(FIELDS.shoeSizes.name, "shoeSizeName")},
-        shoeSize.${aliasedAs(FIELDS.shoeSizes.cls, "shoeSizeClass")},
-        shoeSize.${aliasedAs(FIELDS.shoeSizes.length, "shoeSizeLength")},
-        shoeSize.${aliasedAs(FIELDS.shoeSizes.ruSize, "shoeSizeRu")},
-        shoeSize.${aliasedAs(FIELDS.shoeSizes.euSize, "shoeSizeEu")}
-      FROM ${ENTITIES.products} AS product
-      LEFT JOIN ${ENTITIES.productType} AS productType ON productType.id = product.${FIELDS.products.productType}
-      LEFT JOIN ${ENTITIES.productCategory} AS category ON category.id = product.${FIELDS.products.category}
-      LEFT JOIN ${ENTITIES.productSubCategory} AS subCategory ON subCategory.id = product.${FIELDS.products.subCategory}
-      LEFT JOIN ${ENTITIES.tradeMarks} AS tradeMark ON tradeMark.id = product.${FIELDS.products.tradeMark}
-      LEFT JOIN ${ENTITIES.shoeSizes} AS shoeSize ON shoeSize.id = product.${FIELDS.products.shoeSize}
-      WHERE product.${FIELDS.products.status} != ${VALUES.products.status.inactive}
-      ${ids == null ? "" : "AND product.id IN ?"}
-      ORDER BY category.id;
-      `, (ids == null ? undefined : [[ids]])
+  public async fetchProductsView(
+    opts: Partial<{
+      ids: number[] | undefined,
+      modelName: string | undefined,
+      categoryID: number | undefined,
+      subCategoryID: number | undefined,
+      productTypeID: number | undefined,
+      limit: number,
+      offset: number,
+      random: boolean,
+      isNew: boolean | undefined,
+      extraFieldCondition: {[field: string]: any}
+    }> = {
+      limit: 200,
+      offset: 0,
+      random: false,
+      extraFieldCondition: {}
+    }
+  ): Promise<RowDataPacket[]> {
+    let params: any[] = [];
+    let extraConditions: string[] = [];
+    if (!undef(opts.ids)) {
+      params.push(opts.ids);
+      extraConditions.push("id IN ?");
+    }
+    if (!undef(opts.modelName)) {
+      params.push(opts.modelName);
+      extraConditions.push("modelName = ?");
+    }
+    if (!undef(opts.productTypeID)) {
+      params.push(opts.productTypeID);
+      extraConditions.push("productTypeID = ?");
+    }
+    if (opts.isNew == true || opts.categoryID == -1) {
+      extraConditions.push("isNew");
+    }
+    if (opts.isNew == false) {
+      extraConditions.push("NOT isNew");
+    }
+    if (!undef(opts.categoryID) && opts.categoryID != -1) {
+      params.push(opts.categoryID);
+      extraConditions.push("categoryID = ?");
+    }
+    if (!undef(opts.subCategoryID)) {
+      params.push(opts.subCategoryID);
+      extraConditions.push("subCategoryID = ?");
+    }
+    if (!undef(opts.productTypeID)) {
+      params.push(opts.productTypeID);
+      extraConditions.push("productTypeID = ?");
+    }
+    Object.entries(opts.extraFieldCondition).forEach(
+      ([k, v]) => {
+        params.push(v);
+        extraConditions.push(`${k} = ?`);
+      }
+    )
+    params.push(String(opts.limit), String(opts.offset));
+    const [products] = await this.conn.execute(`
+      SELECT *
+      FROM external_products_view
+      WHERE isSiteViewable
+      ${extraConditions.map((v) => "AND " + v).join("\n")}
+      ${opts.random ? "ORDER BY rand()" : ""}
+      LIMIT ? OFFSET ?;
+      `, params
     ) as RowDataPacket[][];
     return products.map(
       (product) => {
@@ -232,47 +377,15 @@ export class DBSession {
   public async fetchOrderItemsView(orderID: number): Promise<RowDataPacket[]> {
     const [orderItems] = await this.conn.execute(
       `SELECT
+        product.*,
+        item.id AS id,
         item.${aliasedAs(FIELDS.orderItems.product, "productID")},
         item.${aliasedAs(FIELDS.orderItems.quantity)},
         item.${aliasedAs(FIELDS.orderItems.discountedPrice, "discountedPrice")},
         item.${aliasedAs(FIELDS.orderItems.price, "price")},
-        item.${aliasedAs(FIELDS.orderItems.amount, "amount")},
-        subCategory.${aliasedAs(FIELDS.productSubCategory.name, "subCategoryName")},
-        product.${aliasedAs(FIELDS.products.photo)},
-        product.${aliasedAs(FIELDS.products.article)},
-        product.${aliasedAs(FIELDS.products.recomendedMinimalSize)},
-        product.${aliasedAs(FIELDS.products.boxSize)},
-        product.${aliasedAs(FIELDS.products.packageSize)},
-        product.${aliasedAs(FIELDS.products.inStock)},
-        product.${aliasedAs(FIELDS.products.isNew)},
-        product.${aliasedAs(FIELDS.products.description)},
-        product.${aliasedAs(FIELDS.products.review)},
-        product.${aliasedAs(FIELDS.products.keywords, "keywordsIDs")},
-        ${choicesOf("keywordsIDs")} AS keywords,
-        product.${aliasedAs(FIELDS.products.otherPhotos)},
-        product.${aliasedAs(FIELDS.products.rutubeReview)},
-        product.${aliasedAs(FIELDS.products.textColor)},
-        product.${aliasedAs(FIELDS.products.status)},
-        product.${aliasedAs(FIELDS.products.modelName)},
-        product.${aliasedAs(FIELDS.products.producingCountry)},
-        product.${aliasedAs(FIELDS.products.minKidAge)},
-        product.${aliasedAs(FIELDS.products.maxKidAge)},
-        product.${aliasedAs(FIELDS.products.kidGender)},
-        product.${aliasedAs(FIELDS.products.color)},
-        tradeMark.id AS tradeMarkID,
-        tradeMark.${aliasedAs(FIELDS.tradeMarks.name, "tradeMarkName")},
-        tradeMark.${aliasedAs(FIELDS.tradeMarks.logo, "tradeMarkLogo")},
-        tradeMark.${aliasedAs(FIELDS.tradeMarks.about, "tradeMarkAbout")},
-        shoeSize.${aliasedAs(FIELDS.shoeSizes.name, "shoeSizeName")},
-        shoeSize.${aliasedAs(FIELDS.shoeSizes.cls, "shoeSizeClass")},
-        shoeSize.${aliasedAs(FIELDS.shoeSizes.length, "shoeSizeLength")},
-        shoeSize.${aliasedAs(FIELDS.shoeSizes.ruSize, "shoeSizeRu")},
-        shoeSize.${aliasedAs(FIELDS.shoeSizes.euSize, "shoeSizeEu")}
-      FROM ${ENTITIES.products} AS product
-      LEFT JOIN ${ENTITIES.orderItems} as item ON item.${FIELDS.orderItems.product} = product.id
-      LEFT JOIN ${ENTITIES.productSubCategory} AS subCategory ON subCategory.id = product.${FIELDS.products.subCategory}
-      LEFT JOIN ${ENTITIES.tradeMarks} AS tradeMark ON tradeMark.id = product.${FIELDS.products.tradeMark}
-      LEFT JOIN ${ENTITIES.shoeSizes} AS shoeSize ON shoeSize.id = product.${FIELDS.products.shoeSize}
+        item.${aliasedAs(FIELDS.orderItems.amount, "amount")}
+      FROM ${ENTITIES.orderItems} as item
+      LEFT JOIN external_products_view AS product ON item.${FIELDS.orderItems.product} = product.id
       WHERE item.parent_item_id = ?`,
       [orderID]
     ) as RowDataPacket[][];
@@ -539,5 +652,12 @@ export class DBSession {
       orderID
     ) as RowDataPacket[][];
     return await this.fetchClientBySprutonID(result.value);
+  }
+
+  public async fetchCategoriesView(): Promise<RowDataPacket[]> {
+    const [rows] = await this.conn.execute(
+      `SELECT * FROM external_product_categories_list_view`
+    ) as RowDataPacket[][];
+    return rows;
   }
 }
