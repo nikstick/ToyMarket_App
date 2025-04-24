@@ -452,11 +452,12 @@ export class DBSession {
     return orders;
   }
 
-  public async fetchOrderItemsView(orderID: number): Promise<RowDataPacket[]> {
-    const [orderItems] = await this.conn.execute(
+  public async fetchOrderItemsView(orderIDs: number[]): Promise<RowDataPacket[]> {
+    const [orderItems] = await this.conn.query(
       `SELECT
         product.*,
         item.id AS id,
+        item.parent_item_id AS orderID,
         item.${aliasedAs(FIELDS.orderItems.product, "productID")},
         item.${aliasedAs(FIELDS.orderItems.quantity)},
         item.${aliasedAs(FIELDS.orderItems.discountedPrice, "discountedPrice")},
@@ -464,8 +465,8 @@ export class DBSession {
         item.${aliasedAs(FIELDS.orderItems.amount, "amount")}
       FROM ${ENTITIES.orderItems} as item
       LEFT JOIN external_products_view AS product ON item.${FIELDS.orderItems.product} = product.id
-      WHERE item.parent_item_id = ?`,
-      [orderID]
+      WHERE item.parent_item_id IN ?`,
+      [[orderIDs]]
     ) as RowDataPacket[][];
     return orderItems.map(
         (item) => {

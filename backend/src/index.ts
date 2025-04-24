@@ -362,11 +362,23 @@ app.post(
     let client = req.ctx.client;
     for await (const session of DBSession.ctx()) {
       let orders = await session.fetchClientOrders(client.id);
+      let orderItemsViews = await session.fetchOrderItemsView(orders.map((v) => v.id));
+      orderItemsViews.forEach(uselessFront.product);
+      let orderItemsByOrder: {[k: number]: RowDataPacket[]} = {};
+      orders.forEach(
+        (v) => {
+          orderItemsByOrder[Number(v.id)] = [];
+        }
+      );
+      orderItemsViews.forEach(
+        (v) => {
+          orderItemsByOrder[Number(v.orderID)].push(v);
+        }
+      );
 
       var ordersView = [];
       for (const order of orders) {
-        const orderItems = await session.fetchOrderItemsView(order.id);
-        orderItems.forEach(uselessFront.product);
+        let orderItems = orderItemsByOrder[Number(order.id)];
         let orderTotalPrice = orderItems.reduce(
           (sum, item) => sum + Number(item.amount),
           0
