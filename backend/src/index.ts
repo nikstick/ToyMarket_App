@@ -259,18 +259,18 @@ app.get(
 );
 
 let productsValidation = [
-  query("model").isString(),
-  query("id").isInt(),
-  query("ids").isArray(),
-  query("ids.*").isInt(),
-  query("category").isInt(),
-  query("sub_category").isInt(),
-  query("type").isInt(),
-  query("limit").isInt({max: 200}).default(200),
-  query("offset").isInt().default(0),
-  query("random").isBoolean().default(false),
-  query("query").isString(),
-  query("exclude").isString().custom(async (v) => { assert(v == "new", "invalid value of 'exclude'"); })
+  query("model").isString().optional(),
+  query("id").isInt().optional(),
+  query("ids").isArray().optional(),
+  query("ids.*").isInt().optional(),
+  query("category").isInt().optional(),
+  query("sub_category").isInt().optional(),
+  query("type").isInt().optional(),
+  query("limit").default(200).isInt({max: 200}),
+  query("offset").default(0).isInt(),
+  query("random").default(false).isBoolean(),
+  query("query").isString().optional(),
+  query("exclude").isString().custom(async (v) => { assert(v == "new", "invalid value of 'exclude'"); }).optional()
 ];
 async function products(req: Request, res: Response) {
   const vResult = validationResult(req);
@@ -286,8 +286,10 @@ async function products(req: Request, res: Response) {
     subCategoryID: validated.sub_category,
     productTypeID: validated.type,
     limit: validated.limit,
+    offset: validated.offset,
     random: validated.random,
-    extraFieldCondition: {}
+    extraFieldCondition: {},
+    searchMatch: []
   };
   if (!undef(validated.id)) {
     if (undef(fetchParams.ids)) {
@@ -296,17 +298,19 @@ async function products(req: Request, res: Response) {
       fetchParams.ids.push(validated.id);
     }
   }
+  if (validated.exclude == "new") {
+    fetchParams.isNew = false;
+  }
 
   const SEP_PATTERN = /(?<=(?<!\\)(?:\\\\)*);/;
   const TAG_PATTERN = /^([A-Za-z_]+)=(?:(-?\d+)|"(.+)")$/;
-  let matchSet = [];
   if (!undef(validated.query)) {
     let params: string[] = validated.query.split(SEP_PATTERN);
-    params.map(
+    params.forEach(
       (v) => {
         let match = v.match(TAG_PATTERN);
         if (match == null) {
-          matchSet.push(v);
+          fetchParams.searchMatch.push(v);
         } else {
           let k = match[1];
           let v = (!undef(match[2]) ? match[2] : match[3]);

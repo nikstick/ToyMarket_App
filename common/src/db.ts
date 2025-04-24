@@ -159,6 +159,7 @@ export class PoolManager<ConfigSchemaT extends DBConfigSchema> {
           subCategory.${aliasedAs(FIELDS.productSubCategory.name, "subCategoryName")},
           product.${aliasedAs(FIELDS.products.photo)},
           product.${aliasedAs(FIELDS.products.article)},
+          ${strForcedNull(FIELDS.products.name, "product")},
           product.${aliasedAs(FIELDS.products.price)},
           product.${aliasedAs(FIELDS.products.discountedPrice)},
           product.${aliasedAs(FIELDS.products.recomendedMinimalSize)},
@@ -289,18 +290,23 @@ export class DBSession {
       offset: number,
       random: boolean,
       isNew: boolean | undefined,
+      searchMatch: string[],
       extraFieldCondition: {[field: string]: any}
-    }> = {
+    }> = {}
+  ): Promise<RowDataPacket[]> {
+    const defaultOpts = {
       limit: 200,
       offset: 0,
       random: false,
-      extraFieldCondition: {}
-    }
-  ): Promise<RowDataPacket[]> {
+      extraFieldCondition: {},
+      searchMatch: []
+    };
+    opts = Object.assign(structuredClone(defaultOpts), opts);
+
     let params: any[] = [];
     let extraConditions: string[] = [];
     if (!undef(opts.ids)) {
-      params.push(opts.ids);
+      params.push([opts.ids.map(Number)]);
       extraConditions.push("id IN ?");
     }
     if (!undef(opts.modelName)) {
@@ -335,14 +341,46 @@ export class DBSession {
         extraConditions.push(`${k} = ?`);
       }
     )
-    params.push(String(opts.limit), String(opts.offset));
-    const [products] = await this.conn.execute(`
+
+    // search
+    if (opts.searchMatch.length > 0) {
+      var searchQuery = `
+        SELECT id
+        FROM ${ENTITIES.products}
+        WHERE CONCAT(",", ${FIELDS.products.keywords}, ",") REGEXP CONCAT(
+          "(",
+          (
+            SELECT GROUP_CONCAT(id SEPARATOR "|")
+            FROM app_global_lists_choices
+            WHERE lists_id = (
+              SELECT configuration->>'$.use_global_list'
+              FROM app_fields
+              WHERE id = ${FIELDS_RAW.products.keywords}
+            ) AND name != ""
+            AND MATCH (name) AGAINST (?)
+          ),
+          ")"
+        ) OR (
+          ${FIELDS.products.name} != ""
+          AND MATCH (${FIELDS.products.name}) AGAINST (?)
+        ) OR (
+          ${FIELDS.products.article} != ""
+          AND MATCH (${FIELDS.products.article}) AGAINST (?)
+        )
+      `;
+      let text = opts.searchMatch.join(" ");
+      params.push(text, text, text);
+    }
+
+    params.push(Number(opts.limit), Number(opts.offset));
+    const [products] = await this.conn.query(`
       SELECT *
       FROM external_products_view
       WHERE isSiteViewable
       ${extraConditions.map((v) => "AND " + v).join("\n")}
+      ${!undef(searchQuery) ? `AND id IN (${searchQuery})` : ""}
       ${opts.random ? "ORDER BY rand()" : ""}
-      LIMIT ? OFFSET ?;
+      LIMIT ? OFFSET ?
       `, params
     ) as RowDataPacket[][];
     return products.map(

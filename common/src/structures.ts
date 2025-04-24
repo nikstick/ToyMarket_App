@@ -51,6 +51,7 @@ export const FIELDS_RAW = {
     keywords: 319,
     tax: 370,
     packageSize: 383,
+    name: 387,
     color: 388,
     finalPriceServiced: 401,
     modelName: 423,
