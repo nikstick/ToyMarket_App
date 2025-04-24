@@ -12,6 +12,7 @@ export const ENTITIES_RAW = {
   productSubCategory: 36,
   tradeMarks: 37,
   shoeSizes: 38,
+  country: 47,
 } as const;
 export const FIELDS_RAW = {
   users: {
@@ -40,7 +41,10 @@ export const FIELDS_RAW = {
     article: 221,
     boxSize: 222,
     inStock: 223,
+    prepayPercent: 224,
     productType: 225,
+    preorderConditions: 226,
+    preorder: 227,
     description: 274,
     review: 275,
     isNew: 277,
@@ -48,13 +52,17 @@ export const FIELDS_RAW = {
     otherPhotos: 288,
     recomendedMinimalSize: 306,
     recomendedMinimalSizeBoxParts: 315,
+    remained: 316,
     keywords: 319,
+    alwaysInStock: 353,
+    storeDeliveryInDays: 354,
+    prepayAmount: 355,
     tax: 370,
     packageSize: 383,
     name: 387,
     color: 388,
     finalPriceServiced: 401,
-    modelName: 423,
+    modelID: 423,
     tradeMark: 425,
     category: 432,
     textColor: 433,
@@ -67,6 +75,16 @@ export const FIELDS_RAW = {
     kidGender: 444,
     subCategory: 456,
     rutubeReview: 461,
+    WBAccessible: 594,
+    WBURL: 595,
+    OzonAccessible: 596,
+    OzonURL: 597,
+    AvitoAccessible: 598,
+    AvitoURL: 599,
+    YaMarketAccessible: 600,
+    YaMarketURL: 601,
+    modelName: 889,
+    material: 890,
   },
   productType: {
     name: 213
@@ -118,6 +136,16 @@ export const FIELDS_RAW = {
     cls: 454,
     name: 455,
   },
+  countries: {
+    shortName: 727,
+    code: 728,
+    flag: 729,
+    fullName: 730,
+    alfa2: 731,
+    alfa3: 732,
+    isViewable: 733,
+    enName: 734,
+  },
 } as const;
 export const VALUES = {
   clients: {
@@ -126,11 +154,6 @@ export const VALUES = {
     },
   },
   products: {
-    producingCountry: {
-      china: 53,
-      russia: 54,
-      turkey: 55,
-    },
     color: {
       red: 76,
       gray: 77,

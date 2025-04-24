@@ -58,6 +58,30 @@ export class Spruton<ConfigSchemaT extends SprutonConfigSchema> {
     );
   }
 
+  public async fetchProducts(
+    productsID: number[]
+  ): Promise<{[key: number]: SprutonItem}> {
+    if (!productsID.length) { return {}; }
+    const fetchResp = await axios.post(
+      `${this.config.get("spruton.url")}/api/rest.php`,
+      {
+        username: this.config.get("spruton.username"),
+        password: this.config.get("spruton.password"),
+        key: this.config.get("spruton.apiKey"),
+        action: "select",
+        entity_id: ENTITIES_RAW.products,
+        ["filters[id]"]: productsID.join(",")
+      },
+      {headers: {"Content-Type": "multipart/form-data"}}
+    );
+    assert(fetchResp.status == 200);
+    return Object.fromEntries(
+      fetchResp.data["data"].map(
+        x => [x.id, x]
+      )
+    );
+  }
+
   public async fetchOrder(orderID: number): Promise<SprutonItem> {
     const fetchResp = await axios.post(
       `${this.config.get("spruton.url")}/api/rest.php`,

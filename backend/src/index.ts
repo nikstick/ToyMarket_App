@@ -280,7 +280,7 @@ async function products(req: Request, res: Response) {
   const validated = matchedData(req);
 
   let fetchParams: Parameters<DBSession["fetchProductsView"]>[0] = {
-    modelName: validated.model,
+    modelID: validated.model,
     ids: validated.ids,
     categoryID: validated.category,
     subCategoryID: validated.sub_category,
@@ -339,6 +339,23 @@ async function products(req: Request, res: Response) {
 app.get("/api/products", ...productsValidation, products);
 app.get("/api/product", ...productsValidation, products);
 
+app.get(
+  "/api/product/extras",
+  query("id").isInt(),
+  async (req: Request, res: Response) => {
+    const vResult = validationResult(req);
+    if (!vResult.isEmpty()) {
+      return res.send({errors: vResult.array()});
+    }
+    const validated = matchedData(req);
+
+    let fetched: {[k: string]: string};
+    [fetched] = Object.values(await spruton.fetchProducts([validated.id])) as any;
+    let remained = Number(fetched[FIELDS_RAW.products.remained].match(/\d+/)[0]);
+    return res.json({data: {id: validated.id, remained: remained}});
+  }
+);
+
 app.post(
   "/api/user/get",
   async (req: Request, res: Response) => {
@@ -360,7 +377,9 @@ app.post(
           orderDate: order.date_added,
           products: orderItems,
           total: orderTotalPrice,
-          discount: order.personalDiscount
+          discount: order.personalDiscount,
+          status: order.status,
+          statusName: order.statusName
         });
       }
     }
