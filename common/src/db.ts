@@ -1,4 +1,4 @@
-import { exit } from "node:process";
+import { exit, off } from "node:process";
 
 import {
   type PoolOptions,
@@ -436,9 +436,9 @@ export class DBSession {
     return products;
   }
 
-  public async fetchClientOrders(clientID: number): Promise<RowDataPacket[]> {
-    const [orders] = await this.conn.execute(
-      `SELECT
+  public async fetchClientOrders(clientID: number, limit: number = 20, offset: number = 0): Promise<RowDataPacket[]> {
+    const [orders] = await this.conn.execute(`
+      SELECT
         id,
         date_added,
         ${aliasedAs(FIELDS.orders.status)},
@@ -446,8 +446,9 @@ export class DBSession {
         ${aliasedAs(FIELDS.orders.personalDiscount)}
       FROM ${ENTITIES.orders}
       WHERE ${FIELDS.orders.client} = ?
-      ORDER BY date_added DESC`,
-      [clientID]
+      ORDER BY date_added DESC
+      LIMIT ? OFFSET ?
+      `, [clientID, String(limit), String(offset)]
     ) as RowDataPacket[][];
     return orders;
   }

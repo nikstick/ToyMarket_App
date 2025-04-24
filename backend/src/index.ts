@@ -358,10 +358,22 @@ app.get(
 
 app.post(
   "/api/user/get",
+  query("limit").default(20).isInt({max: 20}),
+  query("offset").default(0).isInt(),
   async (req: Request, res: Response) => {
+    const vResult = validationResult(req);
+    if (!vResult.isEmpty()) {
+      return res.send({errors: vResult.array()});
+    }
+    const validated = matchedData(req);
+
     let client = req.ctx.client;
     for await (const session of DBSession.ctx()) {
-      let orders = await session.fetchClientOrders(client.id);
+      let orders = await session.fetchClientOrders(
+        client.id,
+        validated.limit,
+        validated.offset
+      );
       let orderItemsViews = await session.fetchOrderItemsView(orders.map((v) => v.id));
       orderItemsViews.forEach(uselessFront.product);
       let orderItemsByOrder: {[k: number]: RowDataPacket[]} = {};
