@@ -80,6 +80,9 @@ app.use(bodyParser.urlencoded({extended: true}));
 class BadAuth extends Error {};
 
 function checkAuth(secret: Buffer | string, data: {hash: string, [key: string]: any}): boolean {
+  if (undef(data.hash)) {
+    return false;
+  }
   const { hash, ...filtered } = data;
   let encodedData = (
     Object.entries(filtered)
