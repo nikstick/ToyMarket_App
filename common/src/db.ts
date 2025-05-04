@@ -257,6 +257,8 @@ export class DBSession {
     ) {
       console.error(`DB CONNECTION ERROR: ${err.message}`);
       exit(1);
+    } else if (err.message.includes("because of inactivity.")) {
+      ;
     } else {
       console.error(err.message);
     }
@@ -484,8 +486,7 @@ export class DBSession {
     phoneNumber: string,
     email: string,
     address: string,
-    companyName: string,
-    inn: string,  // TODO: is it?
+    fullName: string,
     personalDiscount: number,
     comment: string,
     paymentMethod: typeof VALUES.orders.paymentMethod[keyof typeof VALUES.orders.paymentMethod],
@@ -506,8 +507,7 @@ export class DBSession {
         ${FIELDS.orders.phoneNumber},
         ${FIELDS.orders.email},
         ${FIELDS.orders.address},
-        ${FIELDS.orders.companyName},
-        ${FIELDS.orders.inn},
+        ${FIELDS.orders.fullName},
         ${FIELDS.orders.status},
         ${FIELDS.orders.personalDiscount},
         ${FIELDS.orders.comment},
@@ -527,8 +527,7 @@ export class DBSession {
         phoneNumber,
         email,
         address,
-        companyName,
-        inn,
+        fullName,
         VALUES.orders.status.new,
         personalDiscount,
         comment,

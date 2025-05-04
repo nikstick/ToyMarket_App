@@ -467,8 +467,7 @@ app.post(
         phone,
         client[FIELDS.clients.email],
         address,
-        companyName,
-        inn,
+        name,
         personalDiscount,
         comment,
         valuesTranslation.paymentMethod[payBy.toLowerCase()],
@@ -476,8 +475,9 @@ app.post(
         Object.fromEntries(products.map(
           (product) => {
             // FIXME: funny and woozy
-            let { id, quantity, inBox } = product;
-            quantity = Math.ceil(Number(quantity) * inBox);
+            let { id, quantity, recomendedMinimalSize } = product;
+            recomendedMinimalSize = (recomendedMinimalSize || 1);
+            quantity = Math.ceil(Number(quantity) * recomendedMinimalSize);
             return [id, {quantity: quantity}];
           }
         ))
