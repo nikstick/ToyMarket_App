@@ -9,6 +9,7 @@ import bodyParser from "body-parser";
 import type { RowDataPacket } from "mysql2/promise";
 import ipc from "node-ipc";
 import { Netmask } from "netmask";
+import qrcode from "qrcode";
 
 import { ENTITIES, ENTITIES_RAW, FIELDS, FIELDS_RAW, VALUES } from "common/dist/structures.js";
 import { assert, Elevate, makeASCIISafe, undef } from "common/dist/utils.js";
@@ -17,7 +18,7 @@ import { config } from "common/dist/config.js";
 
 import { spruton, tinkoff } from "./controllers.js";
 import { DBSession } from "./db.js";
-import { uselessFront } from "./utils.js";
+import { usefulFront, uselessFront } from "./utils.js";
 import { ORDER_PLACEHOLDER, valuesTranslation } from "./structures.js";
 
 interface TgUserObject {
@@ -155,7 +156,7 @@ app.use(
                   fullName: `${user.first_name} ${user.last_name} (@${user.username})`,
                   tgNick: user.username,
                   tgID: user.id,
-                  ruPhoneNumber: "",
+                  tgPhoneNumber: "",
                   status: VALUES.clients.status.active,
                   email: "",
                   address: "",
@@ -252,10 +253,37 @@ app.get(
 );
 
 app.get(
+  "/api/img/qrcode/:data",
+  async (req: Request, res: Response) => {
+    const { data } = req.params;
+    assert(data.length <= 32);
+    res.contentType("png");
+    await qrcode.toFileStream(res, data);
+  }
+)
+
+app.get(
   "/api/categories",
+  query("exists").default(false).isBoolean(),
+  async (req: Request, res: Response) => {
+    const vResult = validationResult(req);
+    if (!vResult.isEmpty()) {
+      return res.send({errors: vResult.array()});
+    }
+    const validated = matchedData(req);
+
+    for await (const session of DBSession.ctx()) {
+      let data = await session.fetchCategoriesView(validated.exists);
+      return res.json({"data": data});
+    }
+  }
+);
+
+app.get(
+  "/api/pickup-points",
   async (req: Request, res: Response) => {
     for await (const session of DBSession.ctx()) {
-      let data = await session.fetchCategoriesView();
+      let data = await session.fetchRetailOutletsView();
       return res.json({"data": data});
     }
   }
@@ -394,27 +422,18 @@ app.post(
       var ordersView = [];
       for (const order of orders) {
         let orderItems = orderItemsByOrder[Number(order.id)];
-        let orderTotalPrice = orderItems.reduce(
-          (sum, item) => sum + Number(item.amount),
-          0
-        );
 
-        ordersView.push({
-          orderId: order.id,
-          orderDate: order.date_added,
-          products: orderItems,
-          total: orderTotalPrice,
-          discount: order.personalDiscount,
-          status: order.status,
-          statusName: order.statusName
-        });
+        let orderView = structuredClone(order);
+        usefulFront.order(orderView, orderItems);
+        uselessFront.order(orderView);
+        ordersView.push(orderView);
       }
     }
 
     res.json({
       data: {
         name: client[FIELDS.clients.fullName],
-        phone: client[FIELDS.clients.ruPhoneNumber],
+        phone: client[FIELDS.clients.tgPhoneNumber],
         address: client[FIELDS.clients.address],
         company: client[FIELDS.clients.companyName],
         inn: client[FIELDS.clients.inn],
@@ -439,6 +458,7 @@ app.post(
       delivery,
       payBy,
       products,
+      pickupPoint
     } = req.body;
     if (undef(comment)) {
       comment = "";
@@ -452,6 +472,12 @@ app.post(
 
     let client = req.ctx.client;
     for await (const session of DBSession.ctx()) {
+      if (pickupPoint) {
+        pickupPoint = Number(pickupPoint);
+        let outlet = session.fetchRetailOutlet(pickupPoint);
+        assert(outlet[FIELDS.retailOutlets.pickupPointStatus] == "true", "pickup point is closed");
+      }
+
       var personalDiscount: number;
       {
         let personalDiscountSrc = client[FIELDS.clients.personalDiscount];
@@ -472,6 +498,7 @@ app.post(
         comment,
         valuesTranslation.paymentMethod[payBy.toLowerCase()],
         valuesTranslation.deliveryMethod[delivery.toLowerCase()],
+        (pickupPoint || null),
         Object.fromEntries(products.map(
           (product) => {
             // FIXME: funny and woozy

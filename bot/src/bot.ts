@@ -96,7 +96,7 @@ async function inputPhoneNumber(conversation: MyConversation, ctx: MyContext) {
           fullName: `${ctx.from.first_name} ${ctx.from.last_name} (@${ctx.from.username})`,
           tgNick: ctx.from.username,
           tgID: ctx.from.id,
-          ruPhoneNumber: phoneNumber,
+          tgPhoneNumber: phoneNumber,
           status: VALUES.clients.status.active,
           email: "",
           address: "",

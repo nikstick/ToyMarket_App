@@ -114,7 +114,7 @@ export class PoolManager<ConfigSchemaT extends DBConfigSchema> {
     try {
       let query: string;
       query = `
-        CREATE OR REPLACE VIEW external_product_sub_categories_list_view (id, name, types, category_id)
+        CREATE OR REPLACE VIEW external_product_sub_categories_list_view (id, name, types, category_id, \`exists\`)
         AS SELECT
           sub_categories_t.id,
           sub_categories_t.${aliasedAs(FIELDS.productSubCategory.name, "name")},
@@ -123,18 +123,20 @@ export class PoolManager<ConfigSchemaT extends DBConfigSchema> {
               JSON_ARRAYAGG(
                 JSON_OBJECT(
                   "id", types_t.id,
-                  "name", types_t.${FIELDS.productType.name}
+                  "name", types_t.${FIELDS.productType.name},
+                  "exists", (SELECT types_t.id IN (SELECT DISTINCT ${FIELDS.products.productType} FROM ${ENTITIES.products}))
                 )
               ), JSON_ARRAY()
             ) FROM ${ENTITIES.productType} AS types_t
             WHERE types_t.parent_item_id = sub_categories_t.id
-          ),
-          sub_categories_t.parent_item_id AS category_id
+          ) AS types,
+          sub_categories_t.parent_item_id AS category_id,
+          (SELECT sub_categories_t.id IN (SELECT DISTINCT ${FIELDS.products.subCategory} FROM ${ENTITIES.products})) AS 'exists'
         FROM ${ENTITIES.productSubCategory} AS sub_categories_t;
       `;
       await conn.query(query);
       query = `
-        CREATE OR REPLACE VIEW external_product_categories_list_view (id, name, sub_categories)
+        CREATE OR REPLACE VIEW external_product_categories_list_view (id, name, sub_categories, \`exists\`)
         AS SELECT
           categories_t.id,
           categories_t.${aliasedAs(FIELDS.productCategory.name, "name")},
@@ -144,14 +146,16 @@ export class PoolManager<ConfigSchemaT extends DBConfigSchema> {
                 JSON_INSERT(
                   JSON_OBJECT(
                     "id", sub_categories_t.id,
-                    "name", sub_categories_t.name
+                    "name", sub_categories_t.name,
+                    "exists", sub_categories_t.\`exists\`
                   ),
                   "$.types", sub_categories_t.types
                 )
               ), JSON_ARRAY()
             ) FROM external_product_sub_categories_list_view AS sub_categories_t
             WHERE sub_categories_t.category_id = categories_t.id
-          )
+          ) AS sub_categories,
+          (SELECT categories_t.id IN (SELECT DISTINCT ${FIELDS.products.category} FROM ${ENTITIES.products})) AS 'exists'
         FROM ${ENTITIES.productCategory} AS categories_t;
       `;
       await conn.query(query);
@@ -209,6 +213,8 @@ export class PoolManager<ConfigSchemaT extends DBConfigSchema> {
           product.${aliasedAs(FIELDS.products.AvitoURL)},
           ${strBoolean(FIELDS.products.YaMarketAccessible, "product")},
           product.${aliasedAs(FIELDS.products.YaMarketURL)},
+          ${strBoolean(FIELDS.products.recomendedMinimalSizeEnabled, "product")},
+          ${nameOfChoice(FIELDS.products.sizeUnit)} AS sizeUnit,
           tradeMark.id AS tradeMarkID,
           tradeMark.${aliasedAs(FIELDS.tradeMarks.name, "tradeMarkName")},
           tradeMark.${aliasedAs(FIELDS.tradeMarks.logo, "tradeMarkLogo")},
@@ -444,8 +450,18 @@ export class DBSession {
         id,
         date_added,
         ${aliasedAs(FIELDS.orders.status)},
-        ${nameOfChoice(FIELDS.orders.status)} AS statusName,
-        ${aliasedAs(FIELDS.orders.personalDiscount)}
+        ${nameOfChoice("status")} AS statusName,
+        ${aliasedAs(FIELDS.orders.discountPercent)},
+        ${numForcedNull(FIELDS.orders.code)},
+        ${aliasedAs(FIELDS.orders.discountPercent)},
+        ${aliasedAs(FIELDS.orders.address)},
+        ${aliasedAs(FIELDS.orders.paymentMethod, "paymentMethodID")},
+        ${nameOfChoice("paymentMethodID")} AS paymentMethod,
+        ${aliasedAs(FIELDS.orders.deliveryMethod, "deliveryMethodID")},
+        ${nameOfChoice("deliveryMethodID")} AS deliveryMethod,
+        ${strForcedNull(FIELDS.orders.pickupPoint, undefined, "pickupPointID")},
+        ${strForcedNull(FIELDS.orders.trackNumber)},
+        ${strForcedNull(FIELDS.orders.transportCompany)}
       FROM ${ENTITIES.orders}
       WHERE ${FIELDS.orders.client} = ?
       ORDER BY date_added DESC
@@ -456,6 +472,10 @@ export class DBSession {
   }
 
   public async fetchOrderItemsView(orderIDs: number[]): Promise<RowDataPacket[]> {
+    if (orderIDs.length == 0) {
+      return [];
+    }
+
     const [orderItems] = await this.conn.query(
       `SELECT
         product.*,
@@ -491,6 +511,7 @@ export class DBSession {
     comment: string,
     paymentMethod: typeof VALUES.orders.paymentMethod[keyof typeof VALUES.orders.paymentMethod],
     deliveryMethod: typeof VALUES.orders.deliveryMethod[keyof typeof VALUES.orders.deliveryMethod],
+    pickupPoint: number | null,
     products: {[id: number]: {quantity: number}}
   ): Promise<{orderID: number, itemIDs: number[], products: [RowDataPacket, typeof products[keyof typeof products]][]}> {
     const [insertResult] = await this.conn.query(
@@ -509,10 +530,11 @@ export class DBSession {
         ${FIELDS.orders.address},
         ${FIELDS.orders.fullName},
         ${FIELDS.orders.status},
-        ${FIELDS.orders.personalDiscount},
+        ${FIELDS.orders.discountPercent},
         ${FIELDS.orders.comment},
         ${FIELDS.orders.paymentMethod},
-        ${FIELDS.orders.deliveryMethod}
+        ${FIELDS.orders.deliveryMethod},
+        ${FIELDS.orders.pickupPoint}
       ) VALUES ?`,
       [[[
         0,
@@ -533,6 +555,7 @@ export class DBSession {
         comment,
         paymentMethod,
         deliveryMethod,
+        (undef(pickupPoint) ? "" : pickupPoint),
       ]]]
     ) as ResultSetHeader[];
     const orderID = insertResult.insertId;
@@ -622,7 +645,7 @@ export class DBSession {
   public async updateClientData(
     clientID: number,
     fullName: string,
-    ruPhoneNumber: string,
+    tgPhoneNumber: string,
     address: string,
     companyName: string,
     inn: string
@@ -631,14 +654,14 @@ export class DBSession {
       `UPDATE ${ENTITIES.clients}
       SET
         ${FIELDS.clients.fullName} = ?,
-        ${FIELDS.clients.ruPhoneNumber} = ?,
+        ${FIELDS.clients.tgPhoneNumber} = ?,
         ${FIELDS.clients.address} = ?,
         ${FIELDS.clients.companyName} = ?,
         ${FIELDS.clients.inn} = ?
       WHERE id = ?;`,
       [
         fullName,
-        ruPhoneNumber,
+        tgPhoneNumber,
         address,
         companyName,
         inn,
@@ -667,7 +690,7 @@ export class DBSession {
     const [[order]] = await this.conn.execute(`
       SELECT
         *,
-        ${nameOfChoice(FIELDS.orders.status)} AS statusName
+        ${nameOfChoice("status")} AS statusName
       FROM ${ENTITIES.orders}
       WHERE id = ?
       `, [orderID]
@@ -692,7 +715,7 @@ export class DBSession {
     const [insertResult] = await this.conn.query(
       `INSERT INTO ${ENTITIES.clients} (
         ${FIELDS.clients.fullName},
-        ${FIELDS.clients.ruPhoneNumber},
+        ${FIELDS.clients.tgPhoneNumber},
         ${FIELDS.clients.email},
         ${FIELDS.clients.companyName},
         ${FIELDS.clients.status},
@@ -704,7 +727,7 @@ export class DBSession {
       [[
         [
           data.fullName,
-          data.ruPhoneNumber,
+          data.tgPhoneNumber,
           data.email,
           data.companyName,
           data.status,
@@ -724,6 +747,7 @@ export class DBSession {
       `SELECT * FROM ${ENTITIES.clients} WHERE id = ?`,
       clientID
     ) as RowDataPacket[][];
+    assert(!undef(client));
     return client;
   }
 
@@ -737,10 +761,49 @@ export class DBSession {
     return await this.fetchClientBySprutonID(result.value);
   }
 
-  public async fetchCategoriesView(): Promise<RowDataPacket[]> {
-    const [rows] = await this.conn.execute(
-      `SELECT * FROM external_product_categories_list_view`
-    ) as RowDataPacket[][];
+  public async fetchCategoriesView(exists: boolean = false): Promise<RowDataPacket[]> {
+    let [rows] = await this.conn.execute(`
+      SELECT * FROM external_product_categories_list_view
+      ${exists ? "WHERE \`exists\`" : ""}
+    `) as RowDataPacket[][];
+    if (exists) {
+      // FIXME: simplify it with recursion
+      rows.forEach(
+        (cat) => {
+          cat.sub_categories = cat.sub_categories.filter(x => x.exists).map(
+            (subCat) => {
+              subCat.types = subCat.types.filter(x => x.exists);
+              return subCat;
+            }
+          );
+        }
+      );
+    }
+    return rows;
+  }
+
+  public async fetchRetailOutlet(id: number): Promise<RowDataPacket> {
+    let [[outlet]] = await this.conn.execute(`
+      SELECT * FROM ${ENTITIES.retailOutlets}
+      WHERE id = ?
+    `, id) as RowDataPacket[][];
+    assert(!undef(outlet));
+    return outlet;
+  }
+
+  public async fetchRetailOutletsView(): Promise<RowDataPacket[]> {
+    let [rows] = await this.conn.execute(`
+      SELECT
+        id,
+        ${aliasedAs(FIELDS.retailOutlets.name)},
+        ${aliasedAs(FIELDS.retailOutlets.address)},
+        ${aliasedAs(FIELDS.retailOutlets.openingTime)},
+        ${aliasedAs(FIELDS.retailOutlets.closingTime)},
+        ${aliasedAs(FIELDS.retailOutlets.deliveryTime)},
+        ${strBoolean(FIELDS.retailOutlets.pickupPointStatus)}
+      FROM ${ENTITIES.retailOutlets}
+      WHERE ${FIELDS.retailOutlets.pickupPointStatus} = "true"
+    `) as RowDataPacket[][];
     return rows;
   }
 }

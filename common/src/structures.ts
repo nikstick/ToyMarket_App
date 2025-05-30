@@ -12,6 +12,7 @@ export const ENTITIES_RAW = {
   productSubCategory: 36,
   tradeMarks: 37,
   shoeSizes: 38,
+  retailOutlets: 40,
   country: 47,
 } as const;
 export const FIELDS_RAW = {
@@ -20,7 +21,6 @@ export const FIELDS_RAW = {
   },
   clients: {
     fullName: 265,
-    ruPhoneNumber: 266,
     email: 267,
     address: 269,
     password: 271,
@@ -29,7 +29,8 @@ export const FIELDS_RAW = {
     inn: 276,
     tgID: 281,
     tgNick: 303,
-    personalDiscount: 338
+    personalDiscount: 338,
+    tgPhoneNumber: 404,
   },
   news: {
     text: 295,
@@ -67,8 +68,9 @@ export const FIELDS_RAW = {
     category: 432,
     textColor: 433,
     shoeSize: 434,
-    price: 437,
     discountedPrice: 435,
+    price: 437,
+    sizeUnit: 438,
     producingCountry: 439,
     minKidAge: 442,
     maxKidAge: 443,
@@ -85,6 +87,7 @@ export const FIELDS_RAW = {
     YaMarketURL: 601,
     modelName: 889,
     material: 890,
+    recomendedMinimalSizeEnabled: 992,
   },
   productType: {
     name: 213
@@ -100,10 +103,13 @@ export const FIELDS_RAW = {
     fullName: 286,
     trackNumber: 287,
     status: 337,
-    personalDiscount: 341,
+    discountPercent: 341,
     taxedDiscountedCashAmount: 361,
     taxedDiscountedRemoteAmount: 368,
     comment: 369,
+    pickupPoint: 608,
+    transportCompany: 609,
+    code: 895,
   },
   orderItems: {
     product: 242,
@@ -144,6 +150,14 @@ export const FIELDS_RAW = {
     alfa3: 732,
     isViewable: 733,
     enName: 734,
+  },
+  retailOutlets: {
+    name: 491,
+    address: 493,
+    openingTime: 658,
+    closingTime: 659,
+    deliveryTime: 940,
+    pickupPointStatus: 941,
   },
 } as const;
 export const VALUES = {

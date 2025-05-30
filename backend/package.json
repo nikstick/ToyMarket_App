@@ -19,11 +19,14 @@
     "cors": "^2.8.5",
     "express": "^4.19.2",
     "express-async-errors": "^3.1.1",
+    "express-validator": "^7.2.1",
     "js-yaml": "^4.1.0",
     "netmask": "^2.0.2",
     "node-ipc": "achrinza/node-ipc",
+    "qrcode": "^1.5.4",
     "node-ts-cache": "^4.4.0",
-    "node-ts-cache-storage-memory": "^4.4.0"
+    "node-ts-cache-storage-memory": "^4.4.0",
+    "node-ts-cache-storage-node-fs": "^4.4.0"
   },
   "devDependencies": {
     "@types/convict": "^6.1.6",
@@ -34,6 +37,7 @@
     "@types/netmask": "^2",
     "@types/node-fetch": "^2.6.9",
     "@types/node-ipc": "^9.2.3",
+    "@types/qrcode": "^1.5.5",
     "typescript": "^5.2.2"
   }
 }
