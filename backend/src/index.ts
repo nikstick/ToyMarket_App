@@ -20,6 +20,7 @@ import { spruton, tinkoff } from "./controllers.js";
 import { DBSession } from "./db.js";
 import { usefulFront, uselessFront } from "./utils.js";
 import { ORDER_PLACEHOLDER, valuesTranslation } from "./structures.js";
+import { AssertionError } from "node:assert";
 
 interface TgUserObject {
   id: number;
@@ -264,7 +265,8 @@ app.get(
 
 app.get(
   "/api/categories",
-  query("exists").default(false).isBoolean(),
+  query("exists").default(false).isBoolean().toBoolean(),
+  query("in_stock").default(false).isBoolean().toBoolean(),
   async (req: Request, res: Response) => {
     const vResult = validationResult(req);
     if (!vResult.isEmpty()) {
@@ -273,7 +275,7 @@ app.get(
     const validated = matchedData(req);
 
     for await (const session of DBSession.ctx()) {
-      let data = await session.fetchCategoriesView(validated.exists);
+      let data = await session.fetchCategoriesView(validated.exists, validated.in_stock);
       return res.json({"data": data});
     }
   }
@@ -291,17 +293,18 @@ app.get(
 
 let productsValidation = [
   query("model").isString().optional(),
-  query("id").isInt().optional(),
-  query("ids").isArray().optional(),
-  query("ids.*").isInt().optional(),
-  query("category").isInt().optional(),
-  query("sub_category").isInt().optional(),
-  query("type").isInt().optional(),
-  query("limit").default(200).isInt({max: 200}),
-  query("offset").default(0).isInt(),
-  query("random").default(false).isBoolean(),
+  query("id").isInt().toInt().optional(),
+  query("ids").isArray().toArray().optional(),
+  query("ids.*").isInt().toInt().optional(),
+  query("category").isInt().toInt().optional(),
+  query("sub_category").isInt().toInt().optional(),
+  query("type").isInt().toInt().optional(),
+  query("limit").default(200).isInt({max: 200}).toInt(),
+  query("offset").default(0).isInt().toInt(),
+  query("random").default(false).isBoolean().toBoolean(),
   query("query").isString().optional(),
-  query("exclude").isString().custom(async (v) => { assert(v == "new", "invalid value of 'exclude'"); }).optional()
+  query("exclude").isString().custom(async (v) => { assert(v == "new", "invalid value of 'exclude'"); }).optional(),
+  query("in_stock").isBoolean().toBoolean().optional()
 ];
 async function products(req: Request, res: Response) {
   const vResult = validationResult(req);
@@ -319,6 +322,7 @@ async function products(req: Request, res: Response) {
     limit: validated.limit,
     offset: validated.offset,
     random: validated.random,
+    inStock: validated.in_stock,
     extraFieldCondition: {},
     searchMatch: []
   };
@@ -372,7 +376,7 @@ app.get("/api/product", ...productsValidation, products);
 
 app.get(
   "/api/product/extras",
-  query("id").isInt(),
+  query("id").isInt().toInt(),
   async (req: Request, res: Response) => {
     const vResult = validationResult(req);
     if (!vResult.isEmpty()) {
@@ -389,8 +393,8 @@ app.get(
 
 app.post(
   "/api/user/get",
-  query("limit").default(20).isInt({max: 20}),
-  query("offset").default(0).isInt(),
+  query("limit").default(20).isInt({max: 20}).toInt(),
+  query("offset").default(0).isInt().toInt(),
   async (req: Request, res: Response) => {
     const vResult = validationResult(req);
     if (!vResult.isEmpty()) {

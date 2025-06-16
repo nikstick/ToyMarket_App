@@ -114,7 +114,7 @@ export class PoolManager<ConfigSchemaT extends DBConfigSchema> {
     try {
       let query: string;
       query = `
-        CREATE OR REPLACE VIEW external_product_sub_categories_list_view (id, name, types, category_id, \`exists\`)
+        CREATE OR REPLACE VIEW external_product_sub_categories_list_view (id, name, types, category_id, \`exists\`, in_stock)
         AS SELECT
           sub_categories_t.id,
           sub_categories_t.${aliasedAs(FIELDS.productSubCategory.name, "name")},
@@ -124,19 +124,33 @@ export class PoolManager<ConfigSchemaT extends DBConfigSchema> {
                 JSON_OBJECT(
                   "id", types_t.id,
                   "name", types_t.${FIELDS.productType.name},
-                  "exists", (SELECT types_t.id IN (SELECT DISTINCT ${FIELDS.products.productType} FROM ${ENTITIES.products}))
+                  "exists", (SELECT types_t.id IN (SELECT DISTINCT ${FIELDS.products.productType} FROM ${ENTITIES.products})),
+                  "in_stock", (
+                    SELECT types_t.id IN (
+                      SELECT DISTINCT ${FIELDS.products.productType}
+                      FROM ${ENTITIES.products}
+                      WHERE ${FIELDS.products.inStock} > 0 OR ${FIELDS.products.alwaysInStock} = "true"
+                    )
+                  )
                 )
               ), JSON_ARRAY()
             ) FROM ${ENTITIES.productType} AS types_t
             WHERE types_t.parent_item_id = sub_categories_t.id
           ) AS types,
           sub_categories_t.parent_item_id AS category_id,
-          (SELECT sub_categories_t.id IN (SELECT DISTINCT ${FIELDS.products.subCategory} FROM ${ENTITIES.products})) AS 'exists'
+          (SELECT sub_categories_t.id IN (SELECT DISTINCT ${FIELDS.products.subCategory} FROM ${ENTITIES.products})) AS 'exists',
+          (
+            SELECT sub_categories_t.id IN (
+              SELECT DISTINCT ${FIELDS.products.subCategory}
+              FROM ${ENTITIES.products}
+              WHERE ${FIELDS.products.inStock} > 0 OR ${FIELDS.products.alwaysInStock} = "true"
+            )
+          ) AS in_stock
         FROM ${ENTITIES.productSubCategory} AS sub_categories_t;
       `;
       await conn.query(query);
       query = `
-        CREATE OR REPLACE VIEW external_product_categories_list_view (id, name, sub_categories, \`exists\`)
+        CREATE OR REPLACE VIEW external_product_categories_list_view (id, name, sub_categories, \`exists\`, in_stock)
         AS SELECT
           categories_t.id,
           categories_t.${aliasedAs(FIELDS.productCategory.name, "name")},
@@ -147,7 +161,8 @@ export class PoolManager<ConfigSchemaT extends DBConfigSchema> {
                   JSON_OBJECT(
                     "id", sub_categories_t.id,
                     "name", sub_categories_t.name,
-                    "exists", sub_categories_t.\`exists\`
+                    "exists", sub_categories_t.\`exists\`,
+                    "in_stock", sub_categories_t.in_stock
                   ),
                   "$.types", sub_categories_t.types
                 )
@@ -155,7 +170,14 @@ export class PoolManager<ConfigSchemaT extends DBConfigSchema> {
             ) FROM external_product_sub_categories_list_view AS sub_categories_t
             WHERE sub_categories_t.category_id = categories_t.id
           ) AS sub_categories,
-          (SELECT categories_t.id IN (SELECT DISTINCT ${FIELDS.products.category} FROM ${ENTITIES.products})) AS 'exists'
+          (SELECT categories_t.id IN (SELECT DISTINCT ${FIELDS.products.category} FROM ${ENTITIES.products})) AS 'exists',
+          (
+            SELECT categories_t.id IN (
+              SELECT DISTINCT ${FIELDS.products.category}
+              FROM ${ENTITIES.products}
+              WHERE ${FIELDS.products.inStock} > 0 OR ${FIELDS.products.alwaysInStock} = "true"
+            )
+          ) AS in_stock
         FROM ${ENTITIES.productCategory} AS categories_t;
       `;
       await conn.query(query);
@@ -331,6 +353,7 @@ export class DBSession {
       limit: number,
       offset: number,
       random: boolean,
+      inStock: boolean | undefined,
       isNew: boolean | undefined,
       searchMatch: string[],
       extraFieldCondition: {[field: string]: any}
@@ -376,6 +399,9 @@ export class DBSession {
     if (!undef(opts.productTypeID)) {
       params.push(opts.productTypeID);
       extraConditions.push("productTypeID = ?");
+    }
+    if (!undef(opts.inStock)) {
+      extraConditions.push(`${opts.inStock ? "" : "NOT"} (inStock > 0 OR alwaysInStock)`);
     }
     Object.entries(opts.extraFieldCondition).forEach(
       ([k, v]) => {
@@ -761,18 +787,25 @@ export class DBSession {
     return await this.fetchClientBySprutonID(result.value);
   }
 
-  public async fetchCategoriesView(exists: boolean = false): Promise<RowDataPacket[]> {
+  public async fetchCategoriesView(exists: boolean = false, inStock: boolean = false): Promise<RowDataPacket[]> {
+    let field = null;
+    if (exists) {
+      field = "exists";
+    }
+    if (inStock) {
+      field = "in_stock";
+    }
+
     let [rows] = await this.conn.execute(`
       SELECT * FROM external_product_categories_list_view
-      ${exists ? "WHERE \`exists\`" : ""}
+      ${field == null ? "" : `WHERE \`${field}\``}
     `) as RowDataPacket[][];
-    if (exists) {
-      // FIXME: simplify it with recursion
+    if (field != null) {
       rows.forEach(
         (cat) => {
-          cat.sub_categories = cat.sub_categories.filter(x => x.exists).map(
+          cat.sub_categories = cat.sub_categories.filter(x => x[field]).map(
             (subCat) => {
-              subCat.types = subCat.types.filter(x => x.exists);
+              subCat.types = subCat.types.filter(x => x[field]);
               return subCat;
             }
           );
