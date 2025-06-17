@@ -14,7 +14,6 @@ import { Decimal } from "decimal.js";
 
 import { ENTITIES_RAW, FIELDS_RAW, VALUES, ENTITIES, FIELDS, FIELD_ALIAS } from "./structures.js";
 import { assert, AssertionError, undef, Unpartial } from "./utils.js";
-import { FILE } from "node:dns";
 
 interface DBConfigSchema {
   db: {
@@ -79,6 +78,11 @@ export function numForcedNull(field: string, table?: string, alias?: string): st
   return `NULLIF(${field}, 0) ${alias}`;
 }
 
+export function notEmpty(field: string, table?: string, alias?: string): string {
+  [field, alias] = dynamicAlias(field, alias, table);
+  return `IF(${field} != NULL AND ${field} != "", true, false) ${alias}`;
+}
+
 export class PoolManager<ConfigSchemaT extends DBConfigSchema> {
   private static instance: PoolManager<DBConfigSchema> = null;
 
@@ -129,7 +133,8 @@ export class PoolManager<ConfigSchemaT extends DBConfigSchema> {
                     SELECT types_t.id IN (
                       SELECT DISTINCT ${FIELDS.products.productType}
                       FROM ${ENTITIES.products}
-                      WHERE ${FIELDS.products.inStock} > 0 OR ${FIELDS.products.alwaysInStock} = "true"
+                      WHERE ${FIELDS.products.inStock} > 0
+                        OR ${FIELDS.products.accessabilitySettings} = ${VALUES.products.accessabilitySettings.alwaysInStock}
                     )
                   )
                 )
@@ -143,7 +148,8 @@ export class PoolManager<ConfigSchemaT extends DBConfigSchema> {
             SELECT sub_categories_t.id IN (
               SELECT DISTINCT ${FIELDS.products.subCategory}
               FROM ${ENTITIES.products}
-              WHERE ${FIELDS.products.inStock} > 0 OR ${FIELDS.products.alwaysInStock} = "true"
+              WHERE ${FIELDS.products.inStock} > 0
+                OR ${FIELDS.products.accessabilitySettings} = ${VALUES.products.accessabilitySettings.alwaysInStock}
             )
           ) AS in_stock
         FROM ${ENTITIES.productSubCategory} AS sub_categories_t;
@@ -175,7 +181,8 @@ export class PoolManager<ConfigSchemaT extends DBConfigSchema> {
             SELECT categories_t.id IN (
               SELECT DISTINCT ${FIELDS.products.category}
               FROM ${ENTITIES.products}
-              WHERE ${FIELDS.products.inStock} > 0 OR ${FIELDS.products.alwaysInStock} = "true"
+              WHERE ${FIELDS.products.inStock} > 0
+                OR ${FIELDS.products.accessabilitySettings} = ${VALUES.products.accessabilitySettings.alwaysInStock}
             )
           ) AS in_stock
         FROM ${ENTITIES.productCategory} AS categories_t;
@@ -221,19 +228,23 @@ export class PoolManager<ConfigSchemaT extends DBConfigSchema> {
           ${nameOfChoice("kidGenderID")} AS kidGender,
           ${numForcedNull(FIELDS.products.color, "product", "colorID")},
           ${nameOfChoice("colorID")} AS color,
-          ${strBoolean(FIELDS.products.alwaysInStock, "product")},
-          ${strBoolean(FIELDS.products.preorder, "product")},
+          ${numForcedNull(FIELDS.products.accessabilitySettings, "product", "accessabilitySettingsID")},
+          ${nameOfChoice("accessabilitySettingsID")} AS accessabilitySettings,
           product.${aliasedAs(FIELDS.products.preorderConditions)},
           product.${aliasedAs(FIELDS.products.storeDeliveryInDays)},
           product.${aliasedAs(FIELDS.products.prepayPercent)},
           product.${aliasedAs(FIELDS.products.prepayAmount)},
-          ${strBoolean(FIELDS.products.WBAccessible, "product")},
+          (
+            SELECT JSON_ARRAYAGG(value)
+            FROM ${ENTITIES.products}_values
+            WHERE items_id = product.id
+              AND fields_id = ${FIELDS_RAW.products.marketplaceAcessability}
+              AND value != 0
+          ) AS marketplaceAcessability,
+          ${choicesOf("marketplaceAcessability")} AS marketplaceAcessabilityNamed,
           product.${aliasedAs(FIELDS.products.WBURL)},
-          ${strBoolean(FIELDS.products.OzonAccessible, "product")},
           product.${aliasedAs(FIELDS.products.OzonURL)},
-          ${strBoolean(FIELDS.products.AvitoAccessible, "product")},
           product.${aliasedAs(FIELDS.products.AvitoURL)},
-          ${strBoolean(FIELDS.products.YaMarketAccessible, "product")},
           product.${aliasedAs(FIELDS.products.YaMarketURL)},
           ${strBoolean(FIELDS.products.recomendedMinimalSizeEnabled, "product")},
           ${nameOfChoice(FIELDS.products.sizeUnit)} AS sizeUnit,
@@ -258,6 +269,19 @@ export class PoolManager<ConfigSchemaT extends DBConfigSchema> {
         LEFT JOIN ${ENTITIES.tradeMarks} AS tradeMark ON tradeMark.id = product.${FIELDS.products.tradeMark}
         LEFT JOIN ${ENTITIES.shoeSizes} AS shoeSize ON shoeSize.id = product.${FIELDS.products.shoeSize}
         LEFT JOIN ${ENTITIES.country} AS country ON country.id = product.${FIELDS.products.producingCountry};
+      `;
+      conn.query(query);
+      query = `
+        CREATE OR REPLACE VIEW external_products_compat_view
+        AS SELECT
+          *,
+          (accessabilitySettingsID = ${VALUES.products.accessabilitySettings.alwaysInStock}) AS alwaysInStock,
+          (accessabilitySettingsID = ${VALUES.products.accessabilitySettings.preorder}) AS preorder,
+          JSON_CONTAINS(marketplaceAcessability, ${VALUES.products.marketplaceAcessability.wb}, "$") AS WBAccessible,
+          JSON_CONTAINS(marketplaceAcessability, ${VALUES.products.marketplaceAcessability.ozon}, "$") AS OzonAccessible,
+          JSON_CONTAINS(marketplaceAcessability, ${VALUES.products.marketplaceAcessability.avito}, "$") AS AvitoAccessible,
+          JSON_CONTAINS(marketplaceAcessability, ${VALUES.products.marketplaceAcessability.yaMarket}, "$") AS YaMarketAccessible
+        FROM external_products_view
       `;
       conn.query(query);
     } finally {
@@ -401,7 +425,12 @@ export class DBSession {
       extraConditions.push("productTypeID = ?");
     }
     if (!undef(opts.inStock)) {
-      extraConditions.push(`${opts.inStock ? "" : "NOT"} (inStock > 0 OR alwaysInStock)`);
+      extraConditions.push(`
+        ${opts.inStock ? "" : "NOT"} (
+          inStock > 0
+          OR accessabilitySettingsID = ${VALUES.products.accessabilitySettings.alwaysInStock}
+        )
+      `);
     }
     Object.entries(opts.extraFieldCondition).forEach(
       ([k, v]) => {
@@ -443,7 +472,7 @@ export class DBSession {
     params.push(Number(opts.limit), Number(opts.offset));
     const [products] = await this.conn.query(`
       SELECT *
-      FROM external_products_view
+      FROM external_products_compat_view
       WHERE isSiteViewable
       ${extraConditions.map((v) => "AND " + v).join("\n")}
       ${!undef(searchQuery) ? `AND id IN (${searchQuery})` : ""}
@@ -513,7 +542,7 @@ export class DBSession {
         item.${aliasedAs(FIELDS.orderItems.price, "price")},
         item.${aliasedAs(FIELDS.orderItems.amount, "amount")}
       FROM ${ENTITIES.orderItems} as item
-      LEFT JOIN external_products_view AS product ON item.${FIELDS.orderItems.product} = product.id
+      LEFT JOIN external_products_compat_view AS product ON item.${FIELDS.orderItems.product} = product.id
       WHERE item.parent_item_id IN ?`,
       [[orderIDs]]
     ) as RowDataPacket[][];

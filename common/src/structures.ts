@@ -45,7 +45,7 @@ export const FIELDS_RAW = {
     prepayPercent: 224,
     productType: 225,
     preorderConditions: 226,
-    preorder: 227,
+    accessabilitySettings: 227,
     description: 274,
     review: 275,
     isNew: 277,
@@ -55,7 +55,7 @@ export const FIELDS_RAW = {
     recomendedMinimalSizeBoxParts: 315,
     remained: 316,
     keywords: 319,
-    alwaysInStock: 353,
+    marketplaceAcessability: 353,
     storeDeliveryInDays: 354,
     prepayAmount: 355,
     tax: 370,
@@ -77,13 +77,9 @@ export const FIELDS_RAW = {
     kidGender: 444,
     subCategory: 456,
     rutubeReview: 461,
-    WBAccessible: 594,
     WBURL: 595,
-    OzonAccessible: 596,
     OzonURL: 597,
-    AvitoAccessible: 598,
     AvitoURL: 599,
-    YaMarketAccessible: 600,
     YaMarketURL: 601,
     modelName: 889,
     material: 890,
@@ -177,6 +173,17 @@ export const VALUES = {
       multicolor: 82,
       yellow: 84,
     },
+    accessabilitySettings: {
+      checkIfInStock: 222,
+      preorder: 223,
+      alwaysInStock: 224
+    },
+    marketplaceAcessability: {
+      wb: 225,
+      ozon: 226,
+      avito: 227,
+      yaMarket: 28
+    }
   },
   orders: {
     paymentMethod: {
